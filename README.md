@@ -1,5 +1,5 @@
 # Howtoplot
-A quick plot based on Python.
+A quick X-Y line plot based on Python.
 
 The input file format is .txt. Arrange the data in two columns X and Y groups, referring to Example.txt.
 
