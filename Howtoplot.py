@@ -11,6 +11,7 @@ class DataPlotter:
         
         self.data = None
         self.label_entries = []
+        self.linestyle_menus = []
         self.fig = None  # To store the figure object
         
         # Set the style for the widgets
@@ -52,13 +53,21 @@ class DataPlotter:
         self.font_size_menu = ttk.Combobox(main_frame, textvariable=self.font_size_var, values=["8", "10", "12", "14", "16", "18", "20"])
         self.font_size_menu.grid(row=4, column=1, pady=5, sticky=(tk.W, tk.E))
 
+        # Log scale selection
+        self.log_scale_x_var = tk.BooleanVar()
+        self.log_scale_y_var = tk.BooleanVar()
+        self.log_scale_x_check = ttk.Checkbutton(main_frame, text="Log Scale X-axis", variable=self.log_scale_x_var)
+        self.log_scale_x_check.grid(row=5, column=0, pady=5, sticky=tk.W)
+        self.log_scale_y_check = ttk.Checkbutton(main_frame, text="Log Scale Y-axis", variable=self.log_scale_y_var)
+        self.log_scale_y_check.grid(row=5, column=1, pady=5, sticky=tk.W)
+
         # Plot button
         self.plot_button = ttk.Button(main_frame, text="Plot Data", command=self.plot_data)
-        self.plot_button.grid(row=5, column=0, pady=5, sticky=tk.W)
+        self.plot_button.grid(row=6, column=0, pady=5, sticky=tk.W)
 
         # Save button
         self.save_button = ttk.Button(main_frame, text="Save Plot", command=self.save_plot)
-        self.save_button.grid(row=5, column=1, pady=5, sticky=tk.E)
+        self.save_button.grid(row=6, column=1, pady=5, sticky=tk.E)
 
     def load_data(self):
         file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
@@ -76,28 +85,40 @@ class DataPlotter:
             widget.destroy()
 
         self.label_entries = []
+        self.linestyle_menus = []
         for i in range(0, self.data.shape[1], 2):
-            label = ttk.Label(self.label_frame, text=f"Label for Data Set {i//2+1}:")
-            label.pack(pady=2)
-            entry = ttk.Entry(self.label_frame)
-            entry.pack(pady=2)
+            frame = ttk.Frame(self.label_frame)
+            frame.pack(pady=2, fill=tk.X)
+
+            label = ttk.Label(frame, text=f"Label for Data Set {i//2+1}:")
+            label.pack(side=tk.LEFT, padx=5)
+            
+            entry = ttk.Entry(frame)
+            entry.pack(side=tk.LEFT, padx=5)
             self.label_entries.append(entry)
+
+            linestyle_var = tk.StringVar(value="solid")
+            linestyle_menu = ttk.Combobox(frame, textvariable=linestyle_var, values=["solid", "dashed", "dashdot", "dotted"])
+            linestyle_menu.pack(side=tk.LEFT, padx=5)
+            self.linestyle_menus.append(linestyle_var)
 
     def plot_data(self):
         if self.data is not None:
             labels = [entry.get() if entry.get() else f"Data Set {i//2+1}" for i, entry in enumerate(self.label_entries)]
+            linestyles = [var.get() for var in self.linestyle_menus]
             self.fig, ax = plt.subplots()  # Create a figure and an axis
             
             # Set font properties
-            font_properties = {'family': 'Times New Roman', 'size': int(self.font_size_var.get())}
-            rcParams.update({'font.family': font_properties['family'], 'font.size': font_properties['size']})
+            font_properties = {'size': int(self.font_size_var.get())}
+            rcParams.update({'font.size': font_properties['size']})
             
             for i in range(0, self.data.shape[1], 2):
                 x = self.data[:, i]
                 y = self.data[:, i+1]
                 label = labels[i//2]
+                linestyle = linestyles[i//2]
                 if self.chart_type_var.get() == "line":
-                    ax.plot(x, y, label=label)
+                    ax.plot(x, y, label=label, linestyle=linestyle)
                 else:
                     ax.scatter(x, y, label=label)
 
@@ -116,13 +137,19 @@ class DataPlotter:
             if style == "Other":
                 x_label = simpledialog.askstring("Input", "Enter X-axis label (in LaTeX format):")
                 y_label = simpledialog.askstring("Input", "Enter Y-axis label (in LaTeX format):")
-                ax.set_xlabel(x_label, fontsize=int(self.font_size_var.get()), fontfamily='Times New Roman')
-                ax.set_ylabel(y_label, fontsize=int(self.font_size_var.get()), fontfamily='Times New Roman')
+                ax.set_xlabel(x_label, fontsize=int(self.font_size_var.get()))
+                ax.set_ylabel(y_label, fontsize=int(self.font_size_var.get()))
             else:
-                ax.set_xlabel(style_labels[style][0], fontsize=int(self.font_size_var.get()), fontfamily='Times New Roman')
-                ax.set_ylabel(style_labels[style][1], fontsize=int(self.font_size_var.get()), fontfamily='Times New Roman')
+                ax.set_xlabel(style_labels[style][0], fontsize=int(self.font_size_var.get()))
+                ax.set_ylabel(style_labels[style][1], fontsize=int(self.font_size_var.get()))
 
-            ax.legend(frameon=False, fontsize=int(self.font_size_var.get()), prop={'family': 'Times New Roman'})
+            # Apply log scale if selected
+            if self.log_scale_x_var.get():
+                ax.set_xscale('log')
+            if self.log_scale_y_var.get():
+                ax.set_yscale('log')
+
+            ax.legend(frameon=False, fontsize=int(self.font_size_var.get()))
             ax.tick_params(axis='both', which='major', labelsize=int(self.font_size_var.get()))
             ax.tick_params(axis='both', which='minor', labelsize=int(self.font_size_var.get()))
             ax.minorticks_on()
