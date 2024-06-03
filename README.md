@@ -6,7 +6,7 @@ The input file format is .txt. Arrange the data in two columns X and Y groups, r
 Usage:
 1. Install Python.
 2. Run Howtoplot.py in Python.
-3. Install the lacked modules. (pip install numpy) (pip install matplotlib)
+3. Install the lacked modules. (pip install numpy matplotlib)
 4. Run Howtoplot.py in Python.
 
 Detailed Instructions:
