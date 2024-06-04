@@ -90,7 +90,7 @@ class DataPlotter:
             frame = ttk.Frame(self.label_frame)
             frame.pack(pady=2, fill=tk.X)
 
-            label = ttk.Label(frame, text=f"Label for Data Set {i//2+1}:")
+            label = ttk.Label(frame, text=f"Label for Data Set {i//2 + 1}:")
             label.pack(side=tk.LEFT, padx=5)
             
             entry = ttk.Entry(frame)
@@ -104,7 +104,7 @@ class DataPlotter:
 
     def plot_data(self):
         if self.data is not None:
-            labels = [entry.get() if entry.get() else f"Data Set {i//2+1}" for i, entry in enumerate(self.label_entries)]
+            labels = [entry.get() if entry.get() else f"Data Set {index + 1}" for index, entry in enumerate(self.label_entries)]
             linestyles = [var.get() for var in self.linestyle_menus]
             self.fig, ax = plt.subplots()  # Create a figure and an axis
             
@@ -114,14 +114,14 @@ class DataPlotter:
             
             for i in range(0, self.data.shape[1], 2):
                 x = self.data[:, i]
-                y = self.data[:, i+1]
-                label = labels[i//2]
-                linestyle = linestyles[i//2]
+                y = self.data[:, i + 1]
+                label = labels[i // 2]
+                linestyle = linestyles[i // 2]
                 if self.chart_type_var.get() == "line":
                     ax.plot(x, y, label=label, linestyle=linestyle)
                 else:
                     ax.scatter(x, y, label=label)
-
+    
             # Set axis labels based on selected style
             style = self.style_var.get()
             style_labels = {
@@ -133,7 +133,7 @@ class DataPlotter:
                 "Absorbance": (r"$\mathrm{Wavelength\ (nm)}$", r"$\mathrm{Absorbance\ (a.u.)}$"),
                 "XRD": (r"$2\theta\ \mathrm{(degrees)}$", r"$\mathrm{Intensity\ (a.u.)}$")
             }
-
+    
             if style == "Other":
                 x_label = simpledialog.askstring("Input", "Enter X-axis label (in LaTeX format):")
                 y_label = simpledialog.askstring("Input", "Enter Y-axis label (in LaTeX format):")
@@ -142,21 +142,26 @@ class DataPlotter:
             else:
                 ax.set_xlabel(style_labels[style][0], fontsize=int(self.font_size_var.get()))
                 ax.set_ylabel(style_labels[style][1], fontsize=int(self.font_size_var.get()))
-
+    
             # Apply log scale if selected
             if self.log_scale_x_var.get():
                 ax.set_xscale('log')
             if self.log_scale_y_var.get():
                 ax.set_yscale('log')
-
+    
             ax.legend(frameon=False, fontsize=int(self.font_size_var.get()))
-            ax.tick_params(axis='both', which='major', labelsize=int(self.font_size_var.get()))
-            ax.tick_params(axis='both', which='minor', labelsize=int(self.font_size_var.get()))
+            ax.tick_params(axis='both', which='major', width=1, labelsize=int(self.font_size_var.get()))
+            ax.tick_params(axis='both', which='minor', width=1, labelsize=int(self.font_size_var.get()))
             ax.minorticks_on()
+            ax.spines['top'].set_linewidth(1)
+            ax.spines['right'].set_linewidth(1)
+            ax.spines['bottom'].set_linewidth(1)
+            ax.spines['left'].set_linewidth(1)
             plt.tight_layout()
             plt.show()
         else:
             messagebox.showerror("Error", "Please load data first")
+
 
     def save_plot(self):
         if self.data is not None and self.fig is not None:
