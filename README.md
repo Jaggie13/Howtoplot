@@ -14,3 +14,5 @@ Detailed Instructions:
 2. Set the desired format.
 3. Plot Data (Here you can freely browse).
 4. Save Plot.
+
+![image](https://github.com/Jaggie13/Howtoplot/assets/48752562/033a2ac6-7ef8-479d-baa2-88c4b5850aa9)
