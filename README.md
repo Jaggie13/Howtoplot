@@ -2,6 +2,7 @@
 A quick X-Y line plot based on Python.
 
 The input file format is .txt. Arrange the data in two columns X and Y groups, referring to Example.txt.
+(Now the X-YYY data form is supported)
 
 Usage:
 1. Install Python.
@@ -15,4 +16,5 @@ Detailed Instructions:
 3. Plot Data (Here you can freely browse).
 4. Save Plot.
 
-![image](https://github.com/Jaggie13/Howtoplot/assets/48752562/033a2ac6-7ef8-479d-baa2-88c4b5850aa9)
+![image](https://github.com/Jaggie13/Howtoplot/assets/48752562/26aea570-90f6-4f72-bc01-cc4c86da7a02)
+
