@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk, simpledialog, messagebox
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import rcParams
+from matplotlib import rcParams, rc
 
 class DataPlotter:
     def __init__(self, root):
@@ -34,7 +34,7 @@ class DataPlotter:
         self.load_button_modified.grid(row=0, column=1, pady=5, sticky=tk.W)
 
         # Label entry frame
-        self.label_frame = ttk.LabelFrame(main_frame, text="Data Set Labels", padding="10 10 10 10")
+        self.label_frame = ttk.LabelFrame(main_frame, text="Data Set Labels (LaTeX format)", padding="10 10 10 10")
         self.label_frame.grid(row=1, column=0, columnspan=2, pady=5, sticky=(tk.W, tk.E))
 
         # Chart type selection
@@ -48,14 +48,14 @@ class DataPlotter:
         self.style_label = ttk.Label(main_frame, text="Select Style:")
         self.style_label.grid(row=3, column=0, pady=5, sticky=tk.W)
         self.style_var = tk.StringVar(value="PL")
-        self.style_menu = ttk.Combobox(main_frame, textvariable=self.style_var, values=["PL", "Raman", "I-V", "TRPL", "Transmittance", "Absorbance", "XRD", "Other"])
+        self.style_menu = ttk.Combobox(main_frame, textvariable=self.style_var, values=["PL", "Raman", "I-V", "TRPL", "Transmittance", "Absorbance", "XRD", "KPFM", "Other"])
         self.style_menu.grid(row=3, column=1, pady=5, sticky=(tk.W, tk.E))
         
         # Font size selection
         self.font_size_label = ttk.Label(main_frame, text="Select Font Size:")
         self.font_size_label.grid(row=4, column=0, pady=5, sticky=tk.W)
-        self.font_size_var = tk.StringVar(value="13")
-        self.font_size_menu = ttk.Combobox(main_frame, textvariable=self.font_size_var, values=["8", "10", "12", "14", "16", "18", "20"])
+        self.font_size_var = tk.StringVar(value="18")
+        self.font_size_menu = ttk.Combobox(main_frame, textvariable=self.font_size_var, values=["14", "16", "18", "20", "22", "24"])
         self.font_size_menu.grid(row=4, column=1, pady=5, sticky=(tk.W, tk.E))
 
         # Log scale selection
@@ -66,13 +66,26 @@ class DataPlotter:
         self.log_scale_y_check = ttk.Checkbutton(main_frame, text="Log Scale Y-axis", variable=self.log_scale_y_var)
         self.log_scale_y_check.grid(row=5, column=1, pady=5, sticky=tk.W)
 
+        # Shift options
+        self.shift_x_label = ttk.Label(main_frame, text="Shift X-axis by:")
+        self.shift_x_label.grid(row=6, column=0, pady=5, sticky=tk.W)
+        self.shift_x_var = tk.DoubleVar(value=0.0)
+        self.shift_x_entry = ttk.Entry(main_frame, textvariable=self.shift_x_var)
+        self.shift_x_entry.grid(row=6, column=1, pady=5, sticky=(tk.W, tk.E))
+        
+        self.shift_y_label = ttk.Label(main_frame, text="Shift Y-axis by:")
+        self.shift_y_label.grid(row=7, column=0, pady=5, sticky=tk.W)
+        self.shift_y_var = tk.DoubleVar(value=0.0)
+        self.shift_y_entry = ttk.Entry(main_frame, textvariable=self.shift_y_var)
+        self.shift_y_entry.grid(row=7, column=1, pady=5, sticky=(tk.W, tk.E))
+
         # Plot button
         self.plot_button = ttk.Button(main_frame, text="Plot Data", command=self.plot_data)
-        self.plot_button.grid(row=6, column=0, pady=5, sticky=tk.W)
+        self.plot_button.grid(row=8, column=0, pady=5, sticky=tk.W)
 
         # Save button
         self.save_button = ttk.Button(main_frame, text="Save Plot", command=self.save_plot)
-        self.save_button.grid(row=6, column=1, pady=5, sticky=tk.E)
+        self.save_button.grid(row=8, column=1, pady=5, sticky=tk.E)
 
     def load_data(self):
         file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
@@ -134,16 +147,19 @@ class DataPlotter:
             labels = [entry.get() if entry.get() else f"Data Set {index + 1}" for index, entry in enumerate(self.label_entries)]
             linestyles = [var.get() for var in self.linestyle_menus]
             plot_flags = [var.get() for var in self.plot_checkboxes]
+            shift_x = self.shift_x_var.get()
+            shift_y = self.shift_y_var.get()
             self.fig, ax = plt.subplots()  # Create a figure and an axis
             
             # Set font properties
             font_properties = {'size': int(self.font_size_var.get())}
             rcParams.update({'font.size': font_properties['size']})
+            rc('text', usetex=True)  # Enable LaTeX for text rendering
             
             for i in range(0, self.data.shape[1], 2):
                 if plot_flags[i // 2]:  # Check if the dataset should be plotted
-                    x = self.data[:, i]
-                    y = self.data[:, i + 1]
+                    x = self.data[:, i] + shift_x
+                    y = self.data[:, i + 1] + shift_y
                     label = labels[i // 2]
                     linestyle = linestyles[i // 2]
                     if self.chart_type_var.get() == "line":
@@ -156,11 +172,12 @@ class DataPlotter:
             style_labels = {
                 "PL": (r"$\mathrm{Wavelength\ (nm)}$", r"$\mathrm{Intensity\ (a.u.)}$"),
                 "Raman": (r"$\mathrm{Raman\ Shift\ (cm^{-1})}$", r"$\mathrm{Intensity\ (a.u.)}$"),
-                "I-V": (r"$\mathrm{Voltage\ (V)}$", r"$\mathrm{Current\ (A)}$"),
+                "I-V": (r"$\mathrm{Voltage\ (mV)}$", r"$\mathrm{Current\ (mA)}$"),
                 "TRPL": (r"$\mathrm{Time\ (ns)}$", r"$\mathrm{Intensity\ (a.u.)}$"),
                 "Transmittance": (r"$\mathrm{Wavelength\ (nm)}$", r"$\mathrm{Transmittance\ (\%)}$"),
                 "Absorbance": (r"$\mathrm{Wavelength\ (nm)}$", r"$\mathrm{Absorbance\ (a.u.)}$"),
-                "XRD": (r"$2\theta\ \mathrm{(degrees)}$", r"$\mathrm{Intensity\ (a.u.)}$")
+                "XRD": (r"$2\theta\ \mathrm{(degrees)}$", r"$\mathrm{Intensity\ (a.u.)}$"),
+                "KPFM": (r"$\mathrm{Voltage\ (V)}$", r"$\mathrm{Counts}$")
             }
     
             if style == "Other":
@@ -190,7 +207,6 @@ class DataPlotter:
             plt.show()
         else:
             messagebox.showerror("Error", "Please load data first")
-
 
     def save_plot(self):
         if self.data is not None and self.fig is not None:
