@@ -31,7 +31,7 @@ class DataPlotter:
 
         # Add new load button
         self.load_button_modified = ttk.Button(main_frame, text="Load txt Data (XYYY)", command=self.load_and_modify_data)
-        self.load_button_modified.grid(row=0, column=1, pady=5, sticky=tk.W)
+        self.load_button_modified.grid(row=0, column=1, pady=5, sticky=tk.E)
 
         # Label entry frame
         self.label_frame = ttk.LabelFrame(main_frame, text="Data Set Labels (LaTeX format)", padding="10 10 10 10")
@@ -81,7 +81,7 @@ class DataPlotter:
         self.font_size_label.grid(row=4, column=0, pady=5, sticky=tk.W)
         self.font_size_menu.grid(row=4, column=1, pady=5, sticky=(tk.W, tk.E))
         self.log_scale_x_check.grid(row=5, column=0, pady=5, sticky=tk.W)
-        self.log_scale_y_check.grid(row=5, column=1, pady=5, sticky=tk.W)
+        self.log_scale_y_check.grid(row=5, column=1, pady=5, sticky=tk.E)
         self.shift_x_label.grid(row=6, column=0, pady=5, sticky=tk.W)
         self.shift_x_entry.grid(row=6, column=1, pady=5, sticky=(tk.W, tk.E))
         self.shift_y_label.grid(row=7, column=0, pady=5, sticky=tk.W)
