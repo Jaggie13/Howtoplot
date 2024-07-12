@@ -39,53 +39,70 @@ class DataPlotter:
 
         # Chart type selection
         self.chart_type_label = ttk.Label(main_frame, text="Select Chart Type:")
-        self.chart_type_label.grid(row=2, column=0, pady=5, sticky=tk.W)
         self.chart_type_var = tk.StringVar(value="line")
         self.chart_type_menu = ttk.Combobox(main_frame, textvariable=self.chart_type_var, values=["line", "scatter"])
-        self.chart_type_menu.grid(row=2, column=1, pady=5, sticky=(tk.W, tk.E))
-        
+
         # Style selection
         self.style_label = ttk.Label(main_frame, text="Select Style:")
-        self.style_label.grid(row=3, column=0, pady=5, sticky=tk.W)
         self.style_var = tk.StringVar(value="PL")
-        self.style_menu = ttk.Combobox(main_frame, textvariable=self.style_var, values=["PL", "Raman", "I-V", "TRPL", "Transmittance", "Absorbance", "XRD", "KPFM", "Other"])
-        self.style_menu.grid(row=3, column=1, pady=5, sticky=(tk.W, tk.E))
+        self.style_menu = ttk.Combobox(main_frame, textvariable=self.style_var, values=["PL", "Raman", "I-V", "TRPL", "Transmittance", "Absorbance", "XRD", "KPFM", "PYS", "Other"])
         
         # Font size selection
         self.font_size_label = ttk.Label(main_frame, text="Select Font Size:")
-        self.font_size_label.grid(row=4, column=0, pady=5, sticky=tk.W)
         self.font_size_var = tk.StringVar(value="18")
         self.font_size_menu = ttk.Combobox(main_frame, textvariable=self.font_size_var, values=["14", "16", "18", "20", "22", "24"])
-        self.font_size_menu.grid(row=4, column=1, pady=5, sticky=(tk.W, tk.E))
 
         # Log scale selection
         self.log_scale_x_var = tk.BooleanVar()
         self.log_scale_y_var = tk.BooleanVar()
         self.log_scale_x_check = ttk.Checkbutton(main_frame, text="Log Scale X-axis", variable=self.log_scale_x_var)
-        self.log_scale_x_check.grid(row=5, column=0, pady=5, sticky=tk.W)
         self.log_scale_y_check = ttk.Checkbutton(main_frame, text="Log Scale Y-axis", variable=self.log_scale_y_var)
-        self.log_scale_y_check.grid(row=5, column=1, pady=5, sticky=tk.W)
 
         # Shift options
         self.shift_x_label = ttk.Label(main_frame, text="Shift X-axis by:")
-        self.shift_x_label.grid(row=6, column=0, pady=5, sticky=tk.W)
         self.shift_x_var = tk.DoubleVar(value=0.0)
         self.shift_x_entry = ttk.Entry(main_frame, textvariable=self.shift_x_var)
-        self.shift_x_entry.grid(row=6, column=1, pady=5, sticky=(tk.W, tk.E))
         
         self.shift_y_label = ttk.Label(main_frame, text="Shift Y-axis by:")
-        self.shift_y_label.grid(row=7, column=0, pady=5, sticky=tk.W)
         self.shift_y_var = tk.DoubleVar(value=0.0)
         self.shift_y_entry = ttk.Entry(main_frame, textvariable=self.shift_y_var)
-        self.shift_y_entry.grid(row=7, column=1, pady=5, sticky=(tk.W, tk.E))
 
         # Plot button
         self.plot_button = ttk.Button(main_frame, text="Plot Data", command=self.plot_data)
-        self.plot_button.grid(row=8, column=0, pady=5, sticky=tk.W)
 
         # Save button
         self.save_button = ttk.Button(main_frame, text="Save Plot", command=self.save_plot)
+
+        # Initially hide these widgets
+        self.chart_type_label.grid(row=2, column=0, pady=5, sticky=tk.W)
+        self.chart_type_menu.grid(row=2, column=1, pady=5, sticky=(tk.W, tk.E))
+        self.style_label.grid(row=3, column=0, pady=5, sticky=tk.W)
+        self.style_menu.grid(row=3, column=1, pady=5, sticky=(tk.W, tk.E))
+        self.font_size_label.grid(row=4, column=0, pady=5, sticky=tk.W)
+        self.font_size_menu.grid(row=4, column=1, pady=5, sticky=(tk.W, tk.E))
+        self.log_scale_x_check.grid(row=5, column=0, pady=5, sticky=tk.W)
+        self.log_scale_y_check.grid(row=5, column=1, pady=5, sticky=tk.W)
+        self.shift_x_label.grid(row=6, column=0, pady=5, sticky=tk.W)
+        self.shift_x_entry.grid(row=6, column=1, pady=5, sticky=(tk.W, tk.E))
+        self.shift_y_label.grid(row=7, column=0, pady=5, sticky=tk.W)
+        self.shift_y_entry.grid(row=7, column=1, pady=5, sticky=(tk.W, tk.E))
+        self.plot_button.grid(row=8, column=0, pady=5, sticky=tk.W)
         self.save_button.grid(row=8, column=1, pady=5, sticky=tk.E)
+        
+        self.chart_type_label.grid_remove()
+        self.chart_type_menu.grid_remove()
+        self.style_label.grid_remove()
+        self.style_menu.grid_remove()
+        self.font_size_label.grid_remove()
+        self.font_size_menu.grid_remove()
+        self.log_scale_x_check.grid_remove()
+        self.log_scale_y_check.grid_remove()
+        self.shift_x_label.grid_remove()
+        self.shift_x_entry.grid_remove()
+        self.shift_y_label.grid_remove()
+        self.shift_y_entry.grid_remove()
+        self.plot_button.grid_remove()
+        self.save_button.grid_remove()
 
     def load_data(self):
         file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
@@ -94,6 +111,7 @@ class DataPlotter:
                 self.data = np.loadtxt(file_path)
                 self.create_label_entries()
                 messagebox.showinfo("Load Complete", "Data loaded successfully. Please set labels for each data set.")
+                self.show_widgets()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load data: {e}")
 
@@ -110,6 +128,7 @@ class DataPlotter:
                 self.data = new_data
                 self.create_label_entries()
                 messagebox.showinfo("Load and Modify Complete", "Data loaded and modified successfully. Please set labels for each data set.")
+                self.show_widgets()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load and modify data: {e}")
 
@@ -141,6 +160,23 @@ class DataPlotter:
             plot_check = ttk.Checkbutton(frame, variable=plot_var)
             plot_check.pack(side=tk.LEFT, padx=5)
             self.plot_checkboxes.append(plot_var)
+
+    def show_widgets(self):
+        # Show the widgets
+        self.chart_type_label.grid()
+        self.chart_type_menu.grid()
+        self.style_label.grid()
+        self.style_menu.grid()
+        self.font_size_label.grid()
+        self.font_size_menu.grid()
+        self.log_scale_x_check.grid()
+        self.log_scale_y_check.grid()
+        self.shift_x_label.grid()
+        self.shift_x_entry.grid()
+        self.shift_y_label.grid()
+        self.shift_y_entry.grid()
+        self.plot_button.grid()
+        self.save_button.grid()
 
     def plot_data(self):
         if self.data is not None:
@@ -177,7 +213,8 @@ class DataPlotter:
                 "Transmittance": (r"$\mathrm{Wavelength\ (nm)}$", r"$\mathrm{Transmittance\ (\%)}$"),
                 "Absorbance": (r"$\mathrm{Wavelength\ (nm)}$", r"$\mathrm{Absorbance\ (a.u.)}$"),
                 "XRD": (r"$2\theta\ \mathrm{(degrees)}$", r"$\mathrm{Intensity\ (a.u.)}$"),
-                "KPFM": (r"$\mathrm{Voltage\ (V)}$", r"$\mathrm{Counts}$")
+                "KPFM": (r"$\mathrm{Voltage\ (V)}$", r"$\mathrm{Counts}$"),
+                "PYS": (r"$\mathrm{Photon\ energy\ (eV)}$", r"$\mathrm{Yield^{1/3}}$")
             }
     
             if style == "Other":
