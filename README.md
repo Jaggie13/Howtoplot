@@ -16,5 +16,4 @@ Detailed Instructions:
 3. Plot Data (Here you can freely browse).
 4. Save Plot.
 
-![image](https://github.com/Jaggie13/Howtoplot/assets/48752562/26aea570-90f6-4f72-bc01-cc4c86da7a02)
-
+![image](https://github.com/user-attachments/assets/f80347cd-8945-4b0c-9e6a-108ca94d6146)
