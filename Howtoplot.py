@@ -40,7 +40,7 @@ class DataPlotter:
         # Chart type selection
         self.chart_type_label = ttk.Label(main_frame, text="Select Chart Type:")
         self.chart_type_var = tk.StringVar(value="line")
-        self.chart_type_menu = ttk.Combobox(main_frame, textvariable=self.chart_type_var, values=["line", "scatter"])
+        self.chart_type_menu = ttk.Combobox(main_frame, textvariable=self.chart_type_var, values=["line", "scatter", "stacked"])
 
         # Style selection
         self.style_label = ttk.Label(main_frame, text="Select Style:")
@@ -192,16 +192,24 @@ class DataPlotter:
             rcParams.update({'font.size': font_properties['size']})
             rc('text', usetex=True)  # Enable LaTeX for text rendering
             
-            for i in range(0, self.data.shape[1], 2):
-                if plot_flags[i // 2]:  # Check if the dataset should be plotted
-                    x = self.data[:, i] + shift_x
-                    y = self.data[:, i + 1] + shift_y
-                    label = labels[i // 2]
-                    linestyle = linestyles[i // 2]
-                    if self.chart_type_var.get() == "line":
-                        ax.plot(x, y, label=label, linestyle=linestyle)
-                    else:
-                        ax.scatter(x, y, label=label)
+            if self.chart_type_var.get() == "stacked":
+                x = self.data[:, 0] + shift_x
+                y_data = []
+                for i in range(1, self.data.shape[1], 2):
+                    if plot_flags[i // 2]:
+                        y_data.append(self.data[:, i] + shift_y)
+                ax.stackplot(x, *y_data, labels=[labels[i // 2] for i in range(0, self.data.shape[1], 2) if plot_flags[i // 2]])
+            else:
+                for i in range(0, self.data.shape[1], 2):
+                    if plot_flags[i // 2]:  # Check if the dataset should be plotted
+                        x = self.data[:, i] + shift_x
+                        y = self.data[:, i + 1] + shift_y
+                        label = labels[i // 2]
+                        linestyle = linestyles[i // 2]
+                        if self.chart_type_var.get() == "line":
+                            ax.plot(x, y, label=label, linestyle=linestyle)
+                        else:
+                            ax.scatter(x, y, label=label)
     
             # Set axis labels based on selected style
             style = self.style_var.get()
