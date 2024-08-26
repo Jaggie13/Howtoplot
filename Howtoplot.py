@@ -347,7 +347,11 @@ class DataPlotter:
                 ax.set_ylabel(y_label, fontsize=int(self.font_size_var.get()))
             else:
                 ax.set_ylabel(style_labels[style], fontsize=int(self.font_size_var.get()))
-           
+            
+            ax.spines['top'].set_linewidth(1)
+            ax.spines['right'].set_linewidth(1)
+            ax.spines['bottom'].set_linewidth(1)
+            ax.spines['left'].set_linewidth(1)           
             plt.tight_layout()
             plt.show()
         else:
