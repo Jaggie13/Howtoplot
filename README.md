@@ -18,4 +18,5 @@ Detailed Instructions:
 4. Save Plot.
 
 ![image](https://github.com/user-attachments/assets/f80347cd-8945-4b0c-9e6a-108ca94d6146)
-![image](https://github.com/user-attachments/assets/2647a6f9-ac76-4fc5-a6c0-420e4f2eb5b1)
+![PL](https://github.com/user-attachments/assets/83491282-508a-4c01-94d1-3759bfa37e80)
+
