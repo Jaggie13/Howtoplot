@@ -6,7 +6,7 @@ The input file format is .txt. Arrange the data in two columns X and Y groups, r
 The Boxplot is supported now! Please try it through Example_box.txt.
 
 Usage:
-1. Install Python.
+1. Install Python. (https://www.python.org/downloads/)
 2. Run Howtoplot.py in Python.
 3. Install the lacked modules. (pip install numpy matplotlib)
 4. Run Howtoplot.py in Python.
