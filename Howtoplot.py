@@ -47,7 +47,7 @@ class DataPlotter:
         # Style selection
         self.style_label = ttk.Label(main_frame, text="Select Style:")
         self.style_var = tk.StringVar(value="PL")
-        self.style_menu = ttk.Combobox(main_frame, textvariable=self.style_var, values=["PL", "Raman", "I-V", "TRPL", "Transmittance", "Absorbance", "XRD", "KPFM", "PYS", "Thickness", "Other"])
+        self.style_menu = ttk.Combobox(main_frame, textvariable=self.style_var, values=["PL", "Raman", "I-V", "TRPL", "Transmittance", "Absorbance", "XRD", "KPFM", "PYS", "EQE", "Thickness", "Other"])
         
         # Font size selection
         self.font_size_label = ttk.Label(main_frame, text="Select Font Size:")
@@ -291,6 +291,7 @@ class DataPlotter:
                 "XRD": (r"$2\theta\ \mathrm{(degrees)}$", r"$\mathrm{Intensity\ (a.u.)}$"),
                 "KPFM": (r"$\mathrm{Voltage\ (V)}$", r"$\mathrm{Counts}$"),
                 "PYS": (r"$\mathrm{Photon\ energy\ (eV)}$", r"$\mathrm{Yield^{1/3}}$"),
+                "EQE": (r"$\mathrm{Wavelength\ (nm)}$", r"$\mathrm{EQE}$"),
                 "Thickness": (r"$\mathrm{Length\ (\mu m)}$", r"$\mathrm{Height\ (\mu m)}$")
             }
     
@@ -324,38 +325,57 @@ class DataPlotter:
 
     def plot_boxplot(self):
         if self.data is not None:
-            labels = [entry.get() if entry.get() else f"Data Set {index + 1}" for index, entry in enumerate(self.label_entries)]
+            # 获取被选中的数据集索引
+            selected_indices = [i for i, var in enumerate(self.plot_checkboxes) if var.get()]
+            
+            if not selected_indices:
+                messagebox.showerror("Error", "No datasets selected for boxplot")
+                return
+            
+            # 筛选出被选中的数据集
+            filtered_data = self.data[:, selected_indices]
+            
+            # 获取对应的标签
+            labels = [self.label_entries[i].get() if self.label_entries[i].get() else f"Data Set {i + 1}" for i in selected_indices]
+            
             self.fig, ax = plt.subplots()
             
-            # Set font properties
+            # 设置字体属性
             font_properties = {'size': int(self.font_size_var.get())}
             rcParams.update({'font.size': font_properties['size']})
-            rc('text', usetex=True)  # Enable LaTeX for text rendering
+            rc('text', usetex=True)  # 启用 LaTeX 渲染
             
-            ax.boxplot(self.data, labels=labels)
-            # Set axis labels based on selected style
+            ax.boxplot(filtered_data, labels=labels)
+            
+            # 根据选择的样式设置轴标签
             style = self.Boxstyle_var.get()
             style_labels = {
-                "PCE": (r"$\mathrm{PCE\ (\%)}$"),
-                "Voc": (r"$\mathrm{V_{OC}\ (V)}$"),
-                "Jsc": (r"$\mathrm{J_{SC}\ (mA/cm^{2})}$"),
-                "FF": (r"$\mathrm{FF\ (\%)}$")
+                "PCE": r"$\mathrm{PCE\ (\%)}$",
+                "Voc": r"$\mathrm{V_{OC}\ (mV)}$",
+                "Jsc": r"$\mathrm{J_{SC}\ (mA/cm^{2})}$",
+                "FF": r"$\mathrm{FF}$"
             }
     
             if style == "Other":
                 y_label = simpledialog.askstring("Input", "Enter Y-axis label (in LaTeX format):")
-                ax.set_ylabel(y_label, fontsize=int(self.font_size_var.get()))
+                if y_label:
+                    ax.set_ylabel(y_label, fontsize=int(self.font_size_var.get()))
+                else:
+                    ax.set_ylabel("", fontsize=int(self.font_size_var.get()))
             else:
-                ax.set_ylabel(style_labels[style], fontsize=int(self.font_size_var.get()))
+                ax.set_ylabel(style_labels.get(style, ""), fontsize=int(self.font_size_var.get()))
             
+            # 设置图形边框线宽
             ax.spines['top'].set_linewidth(1)
             ax.spines['right'].set_linewidth(1)
             ax.spines['bottom'].set_linewidth(1)
             ax.spines['left'].set_linewidth(1)           
+            
             plt.tight_layout()
             plt.show()
         else:
             messagebox.showerror("Error", "Please load data first")
+
     
     def save_plot(self):
         if self.data is not None and self.fig is not None:
