@@ -2,7 +2,9 @@
 A quick X-Y line plot based on Python.
 
 The input file format is .txt. Arrange the data in two columns X and Y groups, referring to Example.txt.
+
 (Now the X-YYY data form is supported)
+
 The Boxplot is supported now! Please try it through Example_box.txt.
 
 Usage:
@@ -18,5 +20,7 @@ Detailed Instructions:
 4. Save Plot.
 
 ![image](https://github.com/user-attachments/assets/f80347cd-8945-4b0c-9e6a-108ca94d6146)
-![PL](https://github.com/user-attachments/assets/83491282-508a-4c01-94d1-3759bfa37e80)
+
+<img src="https://github.com/user-attachments/assets/83491282-508a-4c01-94d1-3759bfa37e80" alt="PL" width="400" />
+
 
