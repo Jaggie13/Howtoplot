@@ -259,6 +259,7 @@ class DataPlotter:
             font_properties = {'size': int(self.font_size_var.get())}
             rcParams.update({'font.size': font_properties['size']})
             rc('text', usetex=True)  # Enable LaTeX for text rendering
+            rc('font', family='serif', serif='cm')
             
             if self.chart_type_var.get() == "stacked":
                 x = self.data[:, 0] + shift_x
@@ -344,7 +345,7 @@ class DataPlotter:
             font_properties = {'size': int(self.font_size_var.get())}
             rcParams.update({'font.size': font_properties['size']})
             rc('text', usetex=True)  # 启用 LaTeX 渲染
-            
+            rc('font', family='serif', serif='cm')
             ax.boxplot(filtered_data, labels=labels)
             
             # 根据选择的样式设置轴标签
