@@ -1,6 +1,8 @@
 # Howtoplot
 A quick X-Y line plot based on Python.
 
+Now, the convenient Howtoplot.exe is supported! If you want to create your figures quickly, please try using Howtoplot.py.
+
 The input file format is .txt. Arrange the data in two columns X and Y groups, referring to Example.txt.
 
 (Now the X-YYY data form is supported)
@@ -19,8 +21,10 @@ Detailed Instructions:
 3. Plot Data (Here you can freely browse).
 4. Save Plot.
 
-![image](https://github.com/user-attachments/assets/f80347cd-8945-4b0c-9e6a-108ca94d6146)
+![image](https://github.com/user-attachments/assets/744ff06f-ec75-4295-8556-59a715c4b793)
 
-<img src="https://github.com/user-attachments/assets/83491282-508a-4c01-94d1-3759bfa37e80" alt="PL" width="400" />
+
+![image](https://github.com/user-attachments/assets/00d5953e-ecf2-465d-b6ad-a06f10223eb1)
+
 
 
