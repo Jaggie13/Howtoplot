@@ -92,19 +92,35 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
         self.font_size_menu.grid(row=6, column=1, pady=5, padx=5, sticky=tk.W)
 
         # 坐标轴偏移选项
-        self.shift_x_label = ttkb.Label(main_frame, text="Shift X-axis by:")
-        self.shift_x_label.grid(row=8, column=0, pady=5, padx=5, sticky=tk.W)
+        self.shift_x_label = ttkb.Label(main_frame, text="Add X-data by:")
+        self.shift_x_label.grid(row=4, column=2, pady=5, padx=5, sticky=tk.W)
         
         self.shift_x_var = tk.DoubleVar(value=0.0)
         self.shift_x_entry = ttkb.Entry(main_frame, textvariable=self.shift_x_var)
-        self.shift_x_entry.grid(row=8, column=1, pady=5, padx=5, sticky=(tk.W, tk.E))
+        self.shift_x_entry.grid(row=4, column=3, pady=5, padx=5, sticky=(tk.W, tk.E))
         
-        self.shift_y_label = ttkb.Label(main_frame, text="Shift Y-axis by:")
-        self.shift_y_label.grid(row=9, column=0, pady=5, padx=5, sticky=tk.W)
+        self.shift_y_label = ttkb.Label(main_frame, text="Add Y-data by:")
+        self.shift_y_label.grid(row=5, column=2, pady=5, padx=5, sticky=tk.W)
         
         self.shift_y_var = tk.DoubleVar(value=0.0)
         self.shift_y_entry = ttkb.Entry(main_frame, textvariable=self.shift_y_var)
-        self.shift_y_entry.grid(row=9, column=1, pady=5, padx=5, sticky=(tk.W, tk.E))
+        self.shift_y_entry.grid(row=5, column=3, pady=5, padx=5, sticky=(tk.W, tk.E))
+
+        # 坐标轴倍数选项
+        self.times_x_label = ttkb.Label(main_frame, text="Multiply X-data by:")
+        self.times_x_label.grid(row=6, column=2, pady=5, padx=5, sticky=tk.W)
+        
+        self.times_x_var = tk.DoubleVar(value=1.0)  # 默认倍数设置为 1.0 表示无缩放
+        self.times_x_entry = ttkb.Entry(main_frame, textvariable=self.times_x_var)
+        self.times_x_entry.grid(row=6, column=3, pady=5, padx=5, sticky=(tk.W, tk.E))
+        
+        self.times_y_label = ttkb.Label(main_frame, text="Multiply Y-data by:")
+        self.times_y_label.grid(row=7, column=2, pady=5, padx=5, sticky=tk.W)
+        
+        self.times_y_var = tk.DoubleVar(value=1.0)  # 默认倍数设置为 1.0 表示无缩放
+        self.times_y_entry = ttkb.Entry(main_frame, textvariable=self.times_y_var)
+        self.times_y_entry.grid(row=7, column=3, pady=5, padx=5, sticky=(tk.W, tk.E))
+
 
         # 绘图按钮
         self.plot_button = ttkb.Button(main_frame, text="Plot Data", bootstyle="success", command=self.plot_data)
@@ -128,6 +144,10 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
         self.shift_x_entry.grid()
         self.shift_y_label.grid()
         self.shift_y_entry.grid()
+        self.times_x_label.grid()
+        self.times_x_entry.grid()
+        self.times_y_label.grid()
+        self.times_y_entry.grid()
         self.plot_button.grid()
         self.save_button.grid()
         self.Boxstyle_label.grid()
@@ -191,6 +211,10 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
                 self.shift_x_entry.grid_remove()
                 self.shift_y_label.grid_remove()
                 self.shift_y_entry.grid_remove()
+                self.times_x_label.grid_remove()
+                self.times_x_entry.grid_remove()
+                self.times_y_label.grid_remove()
+                self.times_y_entry.grid_remove() 
                 self.plot_button.grid_remove()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load box data from {file_path}: {e}")
@@ -247,6 +271,10 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
                 self.shift_x_entry.grid_remove()
                 self.shift_y_label.grid_remove()
                 self.shift_y_entry.grid_remove()
+                self.times_x_label.grid_remove()
+                self.times_x_entry.grid_remove()
+                self.times_y_label.grid_remove()
+                self.times_y_entry.grid_remove() 
                 self.plot_button.grid_remove()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load data: {e}")
@@ -304,6 +332,8 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
             labels = [entry.get() if entry.get() else f"Data Set {index + 1}" for index, entry in enumerate(self.label_entries)]
             shift_x = self.shift_x_var.get()
             shift_y = self.shift_y_var.get()
+            times_x = self.times_x_var.get()
+            times_y = self.times_y_var.get()
             self.fig, ax = plt.subplots()  # Create a figure and an axis
             
             # 更新字体大小
@@ -312,8 +342,8 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
 
             for i in range(0, self.data.shape[1], 2):
                 if self.plot_flags[i // 2].get():  # 检查是否选择绘制
-                    x = self.data[:, i] + shift_x
-                    y = self.data[:, i + 1] + shift_y
+                    x = self.data[:, i]*times_x + shift_x
+                    y = self.data[:, i + 1]*times_y + shift_y
                     label = labels[i // 2]
                     ax.plot(x, y, label=label)   
 
