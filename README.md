@@ -1,14 +1,14 @@
 # Howtoplot
 A quick X-Y line plot based on Python.
 
-Usage:
+Usage:<br>
 For Howtoplot.py
 1. Install Python. (https://www.python.org/downloads/)
 2. Run Howtoplot.py in Python.
 3. Install the lacked modules. (pip install numpy matplotlib)
 4. Run Howtoplot.py in Python.
 
-For Howtoplot.exe
+For Howtoplot.exe<br>
 Run it in Windows.
 
 Detailed Instructions:
