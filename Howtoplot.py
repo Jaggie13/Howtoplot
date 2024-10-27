@@ -8,6 +8,8 @@ from matplotlib import rcParams, rc
 import matplotlib
 matplotlib.use('Qt5Agg')
 import _hashlib as _hashopenssl
+import pickle
+import os
 
 # 全局配置字体属性
 rcParams.update({
@@ -22,7 +24,13 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
         super().__init__()
         self.title("Howtoplot")
         self.style = ttkb.Style("flatly")  # 选择一个现代化主题
-        self.geometry("800x600")
+        self.style.configure("TButton", font=("Arial", 13))  # 设置 TButton 的全局字体
+        self.style.configure("TLabel", font=("Arial", 13))   # 设置 TLabel 的全局字体
+
+        self.geometry("800x550")
+
+        # 设置界面全局字体大小
+        self.option_add("*Font", "Arial 13")
         
         self.data = None
         self.label_entries = []
@@ -133,6 +141,15 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
         # Boxplot按钮
         self.boxplot_button = ttkb.Button(main_frame, text="Plot Boxplot", bootstyle="success", command=self.plot_boxplot)
         self.boxplot_button.grid(row=10, column=1, pady=5, padx=5, sticky=tk.W)
+
+        # 保存绘图数据按钮
+        self.save_data_button = ttkb.Button(main_frame, text="Save Raw Data", bootstyle="warning", command=self.save_plot_data)
+        self.save_data_button.grid(row=11, column=2, pady=5, padx=5, sticky=tk.W)
+
+        # 加载绘图数据按钮
+        self.load_data_button = ttkb.Button(main_frame, text="Load Raw Data", bootstyle="info", command=self.load_plot_data)
+        self.load_data_button.grid(row=11, column=0, pady=5, padx=5, sticky=tk.W)
+
 
     def show_widgets(self):
         # Show the widgets
@@ -442,6 +459,60 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
                 messagebox.showinfo("Save Complete", "Plot has been saved")
         else:
             messagebox.showerror("Error", "Please load data and plot it first")
+
+    # 添加保存数据方法
+    def save_plot_data(self):
+        if self.data is not None:
+            # 收集绘图数据、标签和设置
+            plot_data = {
+                "data": self.data,
+                "labels": [entry.get() if entry.get() else f"Data Set {i + 1}" for i, entry in enumerate(self.label_entries)],
+                "shift_x": self.shift_x_var.get(),
+                "shift_y": self.shift_y_var.get(),
+                "times_x": self.times_x_var.get(),
+                "times_y": self.times_y_var.get(),
+                "font_size": self.font_size_var.get(),
+                "style": self.style_var.get(),
+                "Boxstyle": self.Boxstyle_var.get(),
+                "plot_flags": [flag.get() for flag in self.plot_flags]
+            }
+            
+            # 打开文件对话框选择保存位置
+            file_path = filedialog.asksaveasfilename(defaultextension=".pkl", filetypes=[("Pickle files", "*.pkl")])
+            if file_path:
+                # 使用pickle保存数据
+                with open(file_path, "wb") as f:
+                    pickle.dump(plot_data, f)
+                messagebox.showinfo("保存成功", f"绘图数据已保存到 {file_path}")
+
+    # 添加加载数据方法
+    def load_plot_data(self):
+        # 打开文件对话框选择要加载的文件
+        file_path = filedialog.askopenfilename(filetypes=[("Pickle files", "*.pkl")])
+        if file_path and os.path.exists(file_path):
+            # 使用pickle加载数据
+            with open(file_path, "rb") as f:
+                plot_data = pickle.load(f)
+
+            # 恢复绘图数据和设置
+            self.data = plot_data["data"]
+            self.shift_x_var.set(plot_data["shift_x"])
+            self.shift_y_var.set(plot_data["shift_y"])
+            self.times_x_var.set(plot_data["times_x"])
+            self.times_y_var.set(plot_data["times_y"])
+            self.font_size_var.set(plot_data["font_size"])
+            self.style_var.set(plot_data["style"])
+            self.Boxstyle_var.set(plot_data["Boxstyle"])
+
+            # 重建标签和复选框
+            self.create_label_entries()  # 或根据需要调用 create_label_entries_boxplot()
+            for i, entry in enumerate(self.label_entries):
+                entry.insert(0, plot_data["labels"][i])
+            for i, flag in enumerate(self.plot_flags):
+                flag.set(plot_data["plot_flags"][i])
+
+            messagebox.showinfo("加载成功", f"绘图数据已从 {file_path} 加载")
+
 
 if __name__ == "__main__":
     app = DataPlotter()  # 启动应用
