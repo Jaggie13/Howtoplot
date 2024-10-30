@@ -1,13 +1,12 @@
 import tkinter as tk
-from tkinter import filedialog, simpledialog, messagebox
+from tkinter import filedialog, messagebox
 import ttkbootstrap as ttkb  # 使用 ttkbootstrap 使 UI 更现代化
 from tkinterdnd2 import TkinterDnD, DND_FILES  # 导入 TkinterDnD 库，用于实现拖放功能
 import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib import rcParams, rc
+import pandas as pd
+from matplotlib import rcParams
 import matplotlib
 matplotlib.use('Qt5Agg')
-import _hashlib as _hashopenssl
 import pickle
 import os
 
@@ -42,21 +41,21 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
         main_frame.pack(fill="both", expand=True)
 
         # 加载数据按钮 (XYXY)
-        self.load_button = ttkb.Button(main_frame, text="Load txt Data (XYXY)", bootstyle="primary", command=self.load_data)
+        self.load_button = ttkb.Button(main_frame, text="Load Data (XYXY)", bootstyle="primary", command=self.load_data)
         self.load_button.grid(row=0, column=0, pady=5, padx=5, sticky=tk.EW)
 
         # 拖放区域 (XYXY)
-        self.drop_area_xyxy = ttkb.Label(main_frame, text="Drag XYXY file here", relief="ridge", bootstyle="info", padding=5, anchor="center")
+        self.drop_area_xyxy = ttkb.Label(main_frame, text="Drag file here (XYXY)", relief="ridge", bootstyle="info", padding=5, anchor="center")
         self.drop_area_xyxy.grid(row=1, column=0, pady=5, padx=5, ipady=10, sticky=tk.EW)
         self.drop_area_xyxy.drop_target_register(DND_FILES)  # 注册为拖放目标
         self.drop_area_xyxy.dnd_bind('<<Drop>>', self.on_drop_xyxy)  # 绑定拖放事件
 
         # 加载数据按钮 (XYYY)
-        self.load_button_modified = ttkb.Button(main_frame, text="Load txt Data (XYYY)", bootstyle="primary", command=self.load_and_modify_data)
+        self.load_button_modified = ttkb.Button(main_frame, text="Load Data (XYYY)", bootstyle="primary", command=self.load_and_modify_data)
         self.load_button_modified.grid(row=0, column=1, pady=5, padx=5, sticky=tk.EW)
 
         # 拖放区域 (XYYY)
-        self.drop_area_xyyy = ttkb.Label(main_frame, text="Drag XYYY file here", relief="ridge", bootstyle="info", padding=5, anchor="center")
+        self.drop_area_xyyy = ttkb.Label(main_frame, text="Drag file here (XYYY)", relief="ridge", bootstyle="info", padding=5, anchor="center")
         self.drop_area_xyyy.grid(row=1, column=1, pady=5, padx=5, ipady=10, sticky=tk.EW)
         self.drop_area_xyyy.drop_target_register(DND_FILES)
         self.drop_area_xyyy.dnd_bind('<<Drop>>', self.on_drop_xyyy)
@@ -66,7 +65,7 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
         self.load_button_labels.grid(row=0, column=2, pady=5, padx=5, sticky=tk.EW)
 
         # 拖放区域 (Box Data)
-        self.drop_area_box = ttkb.Label(main_frame, text="Drag Box Data file here", relief="ridge", bootstyle="info", padding=5, anchor="center")
+        self.drop_area_box = ttkb.Label(main_frame, text="Drag file here (Box)", relief="ridge", bootstyle="info", padding=5, anchor="center")
         self.drop_area_box.grid(row=1, column=2, pady=5, padx=5, ipady=10, sticky=tk.EW)
         self.drop_area_box.drop_target_register(DND_FILES)
         self.drop_area_box.dnd_bind('<<Drop>>', self.on_drop_box)
@@ -171,18 +170,48 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
         self.Boxstyle_menu.grid()
         self.boxplot_button.grid()
 
+    def configure_xy_view(self):
+        # 设置 XY 图的特定显示元素
+        self.boxplot_button.grid_remove()
+        self.Boxstyle_label.grid_remove()
+        self.Boxstyle_menu.grid_remove()
+        # 添加其他 XY 图相关的 UI 配置
+
+    def configure_box_view(self):
+        # 设置 Box Plot 的特定显示元素
+        self.style_label.grid_remove()
+        self.style_menu.grid_remove()
+        self.shift_x_label.grid_remove()
+        self.shift_x_entry.grid_remove()
+        self.shift_y_label.grid_remove()
+        self.shift_y_entry.grid_remove()
+        self.times_x_label.grid_remove()
+        self.times_x_entry.grid_remove()
+        self.times_y_label.grid_remove()
+        self.times_y_entry.grid_remove()
+        self.plot_button.grid_remove()
+
+    def load(self, file_path):
+        # 根据文件扩展名选择加载方法
+        if file_path.endswith('.txt'):
+            # 使用 pandas 读取 txt 文件，支持不同行列数并填充缺失值
+            self.data = pd.read_csv(file_path, delim_whitespace=True, header=None)
+        elif file_path.endswith(('.xls', '.xlsx')):
+            # 使用 pandas 读取 Excel 文件
+            self.data = pd.read_excel(file_path, header=None)
+        else:
+            raise ValueError("Unsupported file format")
+                
     # 处理 XYXY 文件拖放
     def on_drop_xyxy(self, event):
         file_path = event.data.strip('{}')  # 处理拖放的文件路径
-        if file_path.endswith(".txt"):
+        if file_path.endswith((".txt", ".xls", ".xlsx")):
             try:
-                self.data = np.loadtxt(file_path)
+                self.load(file_path)
                 self.create_label_entries()
                 messagebox.showinfo("Load Complete", f"Data loaded from {file_path} successfully.")
                 self.show_widgets()
-                self.boxplot_button.grid_remove()
-                self.Boxstyle_label.grid_remove()
-                self.Boxstyle_menu.grid_remove()
+                self.configure_xy_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load data from {file_path}: {e}")
         else:
@@ -191,21 +220,23 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
     # 处理 XYYY 文件拖放
     def on_drop_xyyy(self, event):
         file_path = event.data.strip('{}')
-        if file_path.endswith(".txt"):
+        if file_path.endswith((".txt", ".xls", ".xlsx")):
             try:
-                self.data = np.loadtxt(file_path)
-                first_col = self.data[:, 0]
-                data = self.data[:, 1:]
-                new_data = np.empty((data.shape[0], 0))
-                for col in range(data.shape[1]):
-                    new_data = np.column_stack((new_data, first_col, data[:, col]))
+                self.load(file_path)
+                # 获取第一列和剩余的列
+                first_col = self.data.iloc[:, 0]
+                data = self.data.iloc[:, 1:]
+
+                # 动态组合数据，使第一列重复并与每一列组合
+                new_data = pd.concat([first_col] * data.shape[1] + [data[col] for col in data.columns], axis=1)
+
+                # 将 new_data 存储到 self.data
                 self.data = new_data
+                
                 self.create_label_entries()
                 messagebox.showinfo("Load and Modify Complete", f"Data loaded and modified from {file_path} successfully.")
                 self.show_widgets()
-                self.boxplot_button.grid_remove()
-                self.Boxstyle_label.grid_remove()
-                self.Boxstyle_menu.grid_remove()
+                self.configure_xy_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load and modify data from {file_path}: {e}")
         else:
@@ -214,41 +245,29 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
     # 处理 Box Data 文件拖放
     def on_drop_box(self, event):
         file_path = event.data.strip('{}')
-        if file_path.endswith(".txt"):
+        if file_path.endswith((".txt", ".xls", ".xlsx")):
             try:
-                self.data = np.loadtxt(file_path)
+                self.load(file_path)
                 if self.data.ndim == 1:
                     self.data = self.data.reshape(-1, 1)
                 self.create_label_entries_boxplot()
                 messagebox.showinfo("Load Complete", f"Box data loaded from {file_path} successfully.")
                 self.show_widgets()
-                self.style_label.grid_remove()
-                self.style_menu.grid_remove()
-                self.shift_x_label.grid_remove()
-                self.shift_x_entry.grid_remove()
-                self.shift_y_label.grid_remove()
-                self.shift_y_entry.grid_remove()
-                self.times_x_label.grid_remove()
-                self.times_x_entry.grid_remove()
-                self.times_y_label.grid_remove()
-                self.times_y_entry.grid_remove() 
-                self.plot_button.grid_remove()
+                self.configure_box_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load box data from {file_path}: {e}")
         else:
             messagebox.showerror("Error", "Please drop a valid .txt file")
 
     def load_data(self):
-        file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
+        file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt"), ("Excel files", "*.xls;*.xlsx")])
         if file_path:
             try:
-                self.data = np.loadtxt(file_path)
+                self.load(file_path)
                 self.create_label_entries()
                 messagebox.showinfo("Load Complete", "Data loaded successfully. Please set labels for each data set.")
                 self.show_widgets()
-                self.boxplot_button.grid_remove()
-                self.Boxstyle_label.grid_remove()
-                self.Boxstyle_menu.grid_remove()
+                self.configure_xy_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load data: {e}")
 
@@ -256,19 +275,21 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
         file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
         if file_path:
             try:
-                self.data = np.loadtxt(file_path)
-                first_col = self.data[:, 0]
-                data = self.data[:, 1:]
-                new_data = np.empty((data.shape[0], 0))
-                for col in range(data.shape[1]):
-                    new_data = np.column_stack((new_data, first_col, data[:, col]))
+                self.load(file_path)
+                # 获取第一列和剩余的列
+                first_col = self.data.iloc[:, 0]
+                data = self.data.iloc[:, 1:]
+
+                # 动态组合数据，使第一列重复并与每一列组合
+                new_data = pd.concat([first_col] * data.shape[1] + [data[col] for col in data.columns], axis=1)
+
+                # 将 new_data 存储到 self.data
                 self.data = new_data
+                
                 self.create_label_entries()
                 messagebox.showinfo("Load and Modify Complete", "Data loaded and modified successfully. Please set labels for each data set.")
                 self.show_widgets()
-                self.boxplot_button.grid_remove()
-                self.Boxstyle_label.grid_remove()
-                self.Boxstyle_menu.grid_remove()
+                self.configure_xy_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load and modify data: {e}")
 
@@ -276,23 +297,13 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
         file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
         if file_path:
             try:
-                self.data = np.loadtxt(file_path)
+                self.load(file_path)
                 if self.data.ndim == 1:
                     self.data = self.data.reshape(-1, 1)
                 self.create_label_entries_boxplot()
                 messagebox.showinfo("Load Complete", "Data loaded successfully. Please set labels for each data set.")
                 self.show_widgets()
-                self.style_label.grid_remove()
-                self.style_menu.grid_remove()
-                self.shift_x_label.grid_remove()
-                self.shift_x_entry.grid_remove()
-                self.shift_y_label.grid_remove()
-                self.shift_y_entry.grid_remove()
-                self.times_x_label.grid_remove()
-                self.times_x_entry.grid_remove()
-                self.times_y_label.grid_remove()
-                self.times_y_entry.grid_remove() 
-                self.plot_button.grid_remove()
+                self.configure_box_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load data: {e}")
 
@@ -359,8 +370,8 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
 
             for i in range(0, self.data.shape[1], 2):
                 if self.plot_flags[i // 2].get():  # 检查是否选择绘制
-                    x = self.data[:, i]*times_x + shift_x
-                    y = self.data[:, i + 1]*times_y + shift_y
+                    x = self.data.iloc[:, i]*times_x + shift_x
+                    y = self.data.iloc[:, i + 1]*times_y + shift_y
                     label = labels[i // 2]
                     ax.plot(x, y, label=label)   
 
@@ -399,14 +410,14 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
     def plot_boxplot(self):
         if self.data is not None:
             # 筛选出用户选择绘制的列
-            selected_data = [self.data[:, i] for i in range(self.data.shape[1]) if self.plot_flags[i].get()]
+            selected_data = [self.data.iloc[:, i].fillna(self.data.iloc[:, i].median()) for i in range(self.data.shape[1]) if self.plot_flags[i].get()]
             
             if not selected_data:
                 messagebox.showerror("Error", "No data selected for plotting.")
                 return
             
-            filtered_data = np.column_stack(selected_data)
-            
+            filtered_data = pd.concat(selected_data, axis=1)
+
             # 获取对应的标签
             labels = [self.label_entries[i].get() if self.label_entries[i].get() else f"Data Set {i + 1}" for i in range(self.data.shape[1]) if self.plot_flags[i].get()]
             
@@ -416,7 +427,7 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
             font_size = int(self.font_size_var.get())
             rcParams.update({'font.size': font_size})
             
-            ax.boxplot(filtered_data, labels=labels)
+            ax.boxplot(filtered_data, tick_labels=labels)
             
             # 根据选择的样式设置轴标签
             style = self.Boxstyle_var.get()

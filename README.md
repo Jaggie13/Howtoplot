@@ -12,7 +12,7 @@ For Howtoplot.exe<br>
 Run it in Windows.
 
 Detailed Instructions:
-1. Load Data. You can also drag your .txt file into a specified region.
+1. Load Data. You can also drag your .txt (.xls, .xlsx) file into a specified region.
 
   The input file format is .txt. Refer to Example.txt to arrange the data in two columns, X and Y groups.
   (Now the X-YYY data form is supported)
