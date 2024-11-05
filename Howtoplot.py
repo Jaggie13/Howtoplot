@@ -10,144 +10,154 @@ matplotlib.use('Qt5Agg')
 import pickle
 import os
 
-# 全局配置字体属性
+# Global font configuration for plots
 rcParams.update({
-    'font.size': 18,
+    'font.size': 16,
     'text.usetex': False,
     'font.family': 'serif',
     'font.serif': ['Times New Roman']
 })
 
-class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
+class DataPlotter(TkinterDnD.Tk):  
     def __init__(self):
         super().__init__()
         self.title("Howtoplot")
-        self.style = ttkb.Style("flatly")  # 选择一个现代化主题
-        self.style.configure("TButton", font=("Arial", 13))  # 设置 TButton 的全局字体
-        self.style.configure("TLabel", font=("Arial", 13))   # 设置 TLabel 的全局字体
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        self.geometry(f"{screen_width}x{screen_height}")
+        self.style = ttkb.Style("lumen")  # Use a modern theme
 
-        self.geometry("800x550")
+        # Set default font and style for widgets
+        self.option_add("*Font", "Arial 12")
+        self.style.configure("TButton", font=("Arial", 12), padding=5)
+        self.style.configure("TLabel", font=("Arial", 12))
+        self.style.configure("TEntry", padding=5)
+        self.style.configure("TCombobox", padding=5)
 
-        # 设置界面全局字体大小
-        self.option_add("*Font", "Arial 13")
-        
-        self.data = None
-        self.label_entries = []
-        self.plot_flags = []  # 用于存储 Checkbutton 的状态
-        self.fig = None  # To store the figure object
-        
-        # 创建主框架
-        main_frame = ttkb.Frame(self, padding="10 10 10 10")
+        # Main frame and subframe layout
+        main_frame = ttkb.Frame(self, padding="15 15 15 15")
         main_frame.pack(fill="both", expand=True)
 
-        # 加载数据按钮 (XYXY)
-        self.load_button = ttkb.Button(main_frame, text="Load Data (XYXY)", bootstyle="primary", command=self.load_data)
-        self.load_button.grid(row=0, column=0, pady=5, padx=5, sticky=tk.EW)
+        # Data Load section (XYXY)
+        data_load_frame = ttkb.LabelFrame(main_frame, text="Data Load (XYXY)", padding="10 10 10 10")
+        data_load_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        # 拖放区域 (XYXY)
-        self.drop_area_xyxy = ttkb.Label(main_frame, text="Drag file here (XYXY)", relief="ridge", bootstyle="info", padding=5, anchor="center")
-        self.drop_area_xyxy.grid(row=1, column=0, pady=5, padx=5, ipady=10, sticky=tk.EW)
-        self.drop_area_xyxy.drop_target_register(DND_FILES)  # 注册为拖放目标
-        self.drop_area_xyxy.dnd_bind('<<Drop>>', self.on_drop_xyxy)  # 绑定拖放事件
+        self.load_button = ttkb.Button(data_load_frame, text="Load Data (XYXY)", bootstyle="primary", command=self.load_data)
+        self.load_button.grid(row=0, column=0, pady=5, padx=5, sticky="ew")
 
-        # 加载数据按钮 (XYYY)
-        self.load_button_modified = ttkb.Button(main_frame, text="Load Data (XYYY)", bootstyle="primary", command=self.load_and_modify_data)
-        self.load_button_modified.grid(row=0, column=1, pady=5, padx=5, sticky=tk.EW)
+        self.drop_area_xyxy = ttkb.Label(data_load_frame, text="Drag & Drop File Here (XYXY)", relief="ridge", bootstyle="info", padding=10, anchor="center")
+        self.drop_area_xyxy.grid(row=1, column=0, pady=5, padx=5, sticky="ew")
+        self.drop_area_xyxy.drop_target_register(DND_FILES)
+        self.drop_area_xyxy.dnd_bind('<<Drop>>', self.on_drop_xyxy)
 
-        # 拖放区域 (XYYY)
-        self.drop_area_xyyy = ttkb.Label(main_frame, text="Drag file here (XYYY)", relief="ridge", bootstyle="info", padding=5, anchor="center")
-        self.drop_area_xyyy.grid(row=1, column=1, pady=5, padx=5, ipady=10, sticky=tk.EW)
+        # Data Load section (XYYY)
+        data_load_xyyy_frame = ttkb.LabelFrame(main_frame, text="Data Load (XYYY)", padding="10 10 10 10")
+        data_load_xyyy_frame.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+
+        self.load_button_modified = ttkb.Button(data_load_xyyy_frame, text="Load Data (XYYY)", bootstyle="primary", command=self.load_and_modify_data)
+        self.load_button_modified.grid(row=0, column=0, pady=5, padx=5, sticky="ew")
+
+        self.drop_area_xyyy = ttkb.Label(data_load_xyyy_frame, text="Drag & Drop File Here (XYYY)", relief="ridge", bootstyle="info", padding=10, anchor="center")
+        self.drop_area_xyyy.grid(row=1, column=0, pady=5, padx=5, sticky="ew")
         self.drop_area_xyyy.drop_target_register(DND_FILES)
         self.drop_area_xyyy.dnd_bind('<<Drop>>', self.on_drop_xyyy)
 
-        # 加载数据按钮 (Box Data)
-        self.load_button_labels = ttkb.Button(main_frame, text="Load Box Data", bootstyle="primary", command=self.load_data_boxplot)
-        self.load_button_labels.grid(row=0, column=2, pady=5, padx=5, sticky=tk.EW)
+        # Data Load section (Box Data)
+        data_load_box_frame = ttkb.LabelFrame(main_frame, text="Data Load (Box Data)", padding="10 10 10 10")
+        data_load_box_frame.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
 
-        # 拖放区域 (Box Data)
-        self.drop_area_box = ttkb.Label(main_frame, text="Drag file here (Box)", relief="ridge", bootstyle="info", padding=5, anchor="center")
-        self.drop_area_box.grid(row=1, column=2, pady=5, padx=5, ipady=10, sticky=tk.EW)
+        self.load_button_labels = ttkb.Button(data_load_box_frame, text="Load Box Data", bootstyle="primary", command=self.load_data_boxplot)
+        self.load_button_labels.grid(row=0, column=0, pady=5, padx=5, sticky="ew")
+
+        self.drop_area_box = ttkb.Label(data_load_box_frame, text="Drag & Drop File Here (Box)", relief="ridge", bootstyle="info", padding=10, anchor="center")
+        self.drop_area_box.grid(row=1, column=0, pady=5, padx=5, sticky="ew")
         self.drop_area_box.drop_target_register(DND_FILES)
         self.drop_area_box.dnd_bind('<<Drop>>', self.on_drop_box)
 
-        # 标签输入框架
-        self.label_frame = ttkb.Labelframe(main_frame, text="Data Set Labels (LaTeX format)", padding="10 10 10 10")
-        self.label_frame.grid(row=2, column=0, columnspan=3, pady=5, padx=5, sticky=(tk.W, tk.E))
+        # Labels for Data Sets
+        self.label_frame = ttkb.LabelFrame(main_frame, text="Data Set Labels (LaTeX format)", padding="10 10 10 10")
+        self.label_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
 
-        # BoxStyle选择
-        self.Boxstyle_label = ttkb.Label(main_frame, text="Select Box Style:")
-        self.Boxstyle_label.grid(row=4, column=0, pady=5, padx=5, sticky=tk.W)
+        # Settings for Style and Font Size
+        settings_frame = ttkb.LabelFrame(main_frame, text="Settings", padding="10 10 10 10")
+        settings_frame.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
+
+        # BoxStyle selection
+        self.Boxstyle_label = ttkb.Label(settings_frame, text="Select Box Style:")
+        self.Boxstyle_label.grid(row=0, column=0, pady=5, padx=5, sticky="w")
         
         self.Boxstyle_var = tk.StringVar(value="PCE")
-        self.Boxstyle_menu = ttkb.Combobox(main_frame, textvariable=self.Boxstyle_var, values=["PCE", "Voc", "Jsc", "FF"])
-        self.Boxstyle_menu.grid(row=4, column=1, pady=5, padx=5, sticky=tk.W)
+        self.Boxstyle_menu = ttkb.Combobox(settings_frame, textvariable=self.Boxstyle_var, values=["PCE", "Voc", "Jsc", "FF"])
+        self.Boxstyle_menu.grid(row=0, column=1, pady=5, padx=5, sticky="w")
 
-        # 样式选择
-        self.style_label = ttkb.Label(main_frame, text="Select Style:")
-        self.style_label.grid(row=5, column=0, pady=5, padx=5, sticky=tk.W)
+        # Style selection
+        self.style_label = ttkb.Label(settings_frame, text="Select Style:")
+        self.style_label.grid(row=1, column=0, pady=5, padx=5, sticky="w")
         
         self.style_var = tk.StringVar(value="PL")
-        self.style_menu = ttkb.Combobox(main_frame, textvariable=self.style_var, values=["PL", "Raman", "I-V", "TRPL", "Transmittance", "Absorbance", "XRD", "KPFM", "PYS", "EQE", "Thickness"])
-        self.style_menu.grid(row=5, column=1, pady=5, padx=5, sticky=tk.W)
+        self.style_menu = ttkb.Combobox(settings_frame, textvariable=self.style_var, values=["PL", "Raman", "I-V", "TRPL", "Transmittance", "Absorbance", "XRD", "KPFM", "PYS", "EQE", "Thickness"])
+        self.style_menu.grid(row=1, column=1, pady=5, padx=5, sticky="w")
         
-        # 字体大小选择
-        self.font_size_label = ttkb.Label(main_frame, text="Select Font Size:")
-        self.font_size_label.grid(row=6, column=0, pady=5, padx=5, sticky=tk.W)
+        # Font Size selection
+        self.font_size_label = ttkb.Label(settings_frame, text="Select Font Size:")
+        self.font_size_label.grid(row=2, column=0, pady=5, padx=5, sticky="w")
         
         self.font_size_var = tk.StringVar(value="18")
-        self.font_size_menu = ttkb.Combobox(main_frame, textvariable=self.font_size_var, values=["14", "16", "18", "20", "22", "24"])
-        self.font_size_menu.grid(row=6, column=1, pady=5, padx=5, sticky=tk.W)
+        self.font_size_menu = ttkb.Combobox(settings_frame, textvariable=self.font_size_var, values=["14", "16", "18", "20", "22", "24"])
+        self.font_size_menu.grid(row=2, column=1, pady=5, padx=5, sticky="w")
 
-        # 坐标轴偏移选项
-        self.shift_x_label = ttkb.Label(main_frame, text="Add X-data by:")
-        self.shift_x_label.grid(row=4, column=2, pady=5, padx=5, sticky=tk.W)
-        
+        # Axis Shift and Scale settings
+        axis_settings_frame = ttkb.LabelFrame(main_frame, text="Axis Settings", padding="10 10 10 10")
+        axis_settings_frame.grid(row=3, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
+
+        # X and Y Offset settings
+        self.shift_x_label = ttkb.Label(axis_settings_frame, text="Add X-data by:")
+        self.shift_x_label.grid(row=0, column=0, pady=5, padx=5, sticky="w")
         self.shift_x_var = tk.DoubleVar(value=0.0)
-        self.shift_x_entry = ttkb.Entry(main_frame, textvariable=self.shift_x_var)
-        self.shift_x_entry.grid(row=4, column=3, pady=5, padx=5, sticky=(tk.W, tk.E))
-        
-        self.shift_y_label = ttkb.Label(main_frame, text="Add Y-data by:")
-        self.shift_y_label.grid(row=5, column=2, pady=5, padx=5, sticky=tk.W)
-        
+        self.shift_x_entry = ttkb.Entry(axis_settings_frame, textvariable=self.shift_x_var)
+        self.shift_x_entry.grid(row=0, column=1, pady=5, padx=5, sticky="w")
+
+        self.shift_y_label = ttkb.Label(axis_settings_frame, text="Add Y-data by:")
+        self.shift_y_label.grid(row=1, column=0, pady=5, padx=5, sticky="w")
         self.shift_y_var = tk.DoubleVar(value=0.0)
-        self.shift_y_entry = ttkb.Entry(main_frame, textvariable=self.shift_y_var)
-        self.shift_y_entry.grid(row=5, column=3, pady=5, padx=5, sticky=(tk.W, tk.E))
+        self.shift_y_entry = ttkb.Entry(axis_settings_frame, textvariable=self.shift_y_var)
+        self.shift_y_entry.grid(row=1, column=1, pady=5, padx=5, sticky="w")
 
-        # 坐标轴倍数选项
-        self.times_x_label = ttkb.Label(main_frame, text="Multiply X-data by:")
-        self.times_x_label.grid(row=6, column=2, pady=5, padx=5, sticky=tk.W)
-        
-        self.times_x_var = tk.DoubleVar(value=1.0)  # 默认倍数设置为 1.0 表示无缩放
-        self.times_x_entry = ttkb.Entry(main_frame, textvariable=self.times_x_var)
-        self.times_x_entry.grid(row=6, column=3, pady=5, padx=5, sticky=(tk.W, tk.E))
-        
-        self.times_y_label = ttkb.Label(main_frame, text="Multiply Y-data by:")
-        self.times_y_label.grid(row=7, column=2, pady=5, padx=5, sticky=tk.W)
-        
-        self.times_y_var = tk.DoubleVar(value=1.0)  # 默认倍数设置为 1.0 表示无缩放
-        self.times_y_entry = ttkb.Entry(main_frame, textvariable=self.times_y_var)
-        self.times_y_entry.grid(row=7, column=3, pady=5, padx=5, sticky=(tk.W, tk.E))
+        self.times_x_label = ttkb.Label(axis_settings_frame, text="Multiply X-data by:")
+        self.times_x_label.grid(row=0, column=2, pady=5, padx=5, sticky="w")
+        self.times_x_var = tk.DoubleVar(value=1.0)
+        self.times_x_entry = ttkb.Entry(axis_settings_frame, textvariable=self.times_x_var)
+        self.times_x_entry.grid(row=0, column=3, pady=5, padx=5, sticky="w")
 
+        self.times_y_label = ttkb.Label(axis_settings_frame, text="Multiply Y-data by:")
+        self.times_y_label.grid(row=1, column=2, pady=5, padx=5, sticky="w")
+        self.times_y_var = tk.DoubleVar(value=1.0)
+        self.times_y_entry = ttkb.Entry(axis_settings_frame, textvariable=self.times_y_var)
+        self.times_y_entry.grid(row=1, column=3, pady=5, padx=5, sticky="w")
 
-        # 绘图按钮
-        self.plot_button = ttkb.Button(main_frame, text="Plot Data", bootstyle="success", command=self.plot_data)
-        self.plot_button.grid(row=10, column=0, pady=5, padx=5, sticky=tk.W)
-        
-        # 保存图像按钮
-        self.save_button = ttkb.Button(main_frame, text="Save Plot", bootstyle="warning", command=self.save_plot)
-        self.save_button.grid(row=10, column=2, pady=5, padx=5, sticky=tk.W)
+        # Plot and Save Buttons
+        action_frame = ttkb.LabelFrame(main_frame, text="Actions", padding="10 10 10 10")
+        action_frame.grid(row=4, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
 
-        # Boxplot按钮
-        self.boxplot_button = ttkb.Button(main_frame, text="Plot Boxplot", bootstyle="success", command=self.plot_boxplot)
-        self.boxplot_button.grid(row=10, column=1, pady=5, padx=5, sticky=tk.W)
+        # Row 1: Main Action Buttons
+        self.plot_button = ttkb.Button(action_frame, text="Plot Data", bootstyle="success-outline", command=self.plot_data)
+        self.plot_button.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
 
-        # 保存绘图数据按钮
-        self.save_data_button = ttkb.Button(main_frame, text="Save Raw Data", bootstyle="warning", command=self.save_plot_data)
-        self.save_data_button.grid(row=11, column=2, pady=5, padx=5, sticky=tk.W)
+        self.boxplot_button = ttkb.Button(action_frame, text="Plot Boxplot", bootstyle="success-outline", command=self.plot_boxplot)
+        self.boxplot_button.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
 
-        # 加载绘图数据按钮
-        self.load_data_button = ttkb.Button(main_frame, text="Load Raw Data", bootstyle="info", command=self.load_plot_data)
-        self.load_data_button.grid(row=11, column=0, pady=5, padx=5, sticky=tk.W)
+        self.save_button = ttkb.Button(action_frame, text="Save Plot", bootstyle="warning-outline", command=self.save_plot)
+        self.save_button.grid(row=0, column=2, padx=10, pady=5, sticky="ew")
+
+        # Row 2: Additional Save and Load Buttons
+        self.save_data_button = ttkb.Button(action_frame, text="Save Raw Data", bootstyle="secondary-outline", command=self.save_plot_data)
+        self.save_data_button.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+
+        self.load_data_button = ttkb.Button(action_frame, text="Load Raw Data", bootstyle="info-outline", command=self.load_plot_data)
+        self.load_data_button.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+
+        # Spacer for Alignment
+        action_frame.grid_columnconfigure(2, weight=1)  # Ensures the last button aligns well in the grid
 
 
     def show_widgets(self):
@@ -172,6 +182,7 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
 
     def configure_xy_view(self):
         # 设置 XY 图的特定显示元素
+        self.show_widgets()
         self.boxplot_button.grid_remove()
         self.Boxstyle_label.grid_remove()
         self.Boxstyle_menu.grid_remove()
@@ -179,6 +190,7 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
 
     def configure_box_view(self):
         # 设置 Box Plot 的特定显示元素
+        self.show_widgets()
         self.style_label.grid_remove()
         self.style_menu.grid_remove()
         self.shift_x_label.grid_remove()
@@ -210,7 +222,6 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
                 self.load(file_path)
                 self.create_label_entries()
                 messagebox.showinfo("Load Complete", f"Data loaded from {file_path} successfully.")
-                self.show_widgets()
                 self.configure_xy_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load data from {file_path}: {e}")
@@ -235,7 +246,6 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
                 
                 self.create_label_entries()
                 messagebox.showinfo("Load and Modify Complete", f"Data loaded and modified from {file_path} successfully.")
-                self.show_widgets()
                 self.configure_xy_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load and modify data from {file_path}: {e}")
@@ -252,7 +262,6 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
                     self.data = self.data.reshape(-1, 1)
                 self.create_label_entries_boxplot()
                 messagebox.showinfo("Load Complete", f"Box data loaded from {file_path} successfully.")
-                self.show_widgets()
                 self.configure_box_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load box data from {file_path}: {e}")
@@ -266,7 +275,6 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
                 self.load(file_path)
                 self.create_label_entries()
                 messagebox.showinfo("Load Complete", "Data loaded successfully. Please set labels for each data set.")
-                self.show_widgets()
                 self.configure_xy_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load data: {e}")
@@ -288,7 +296,6 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
                 
                 self.create_label_entries()
                 messagebox.showinfo("Load and Modify Complete", "Data loaded and modified successfully. Please set labels for each data set.")
-                self.show_widgets()
                 self.configure_xy_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load and modify data: {e}")
@@ -302,7 +309,6 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
                     self.data = self.data.reshape(-1, 1)
                 self.create_label_entries_boxplot()
                 messagebox.showinfo("Load Complete", "Data loaded successfully. Please set labels for each data set.")
-                self.show_widgets()
                 self.configure_box_view()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load data: {e}")
@@ -380,7 +386,7 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
             style_labels = {
                 "PL": (r"$\mathrm{Wavelength\ (nm)}$", r"$\mathrm{Intensity\ (a.u.)}$"),
                 "Raman": (r"$\mathrm{Raman\ Shift\ (cm^{-1})}$", r"$\mathrm{Intensity\ (a.u.)}$"),
-                "I-V": (r"$\mathrm{Voltage\ (mV)}$", r"$\mathrm{Current\ (mA)}$"),
+                "I-V": (r"$\mathrm{Voltage\ (mV)}$", r"$\mathrm{Current\ density\ (mA/cm^{2})}$"),
                 "TRPL": (r"$\mathrm{Time\ (ns)}$", r"$\mathrm{Intensity\ (a.u.)}$"),
                 "Transmittance": (r"$\mathrm{Wavelength\ (nm)}$", r"$\mathrm{Transmittance\ (\%)}$"),
                 "Absorbance": (r"$\mathrm{Wavelength\ (nm)}$", r"$\mathrm{Absorbance\ (a.u.)}$"),
@@ -474,7 +480,7 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
     # 添加保存数据方法
     def save_plot_data(self):
         if self.data is not None:
-            # 收集绘图数据、标签和设置
+            # Collect plot data, labels, and settings for all plot types
             plot_data = {
                 "data": self.data,
                 "labels": [entry.get() if entry.get() else f"Data Set {i + 1}" for i, entry in enumerate(self.label_entries)],
@@ -485,45 +491,52 @@ class DataPlotter(TkinterDnD.Tk):  # 继承 TkinterDnD 以支持拖放
                 "font_size": self.font_size_var.get(),
                 "style": self.style_var.get(),
                 "Boxstyle": self.Boxstyle_var.get(),
-                "plot_flags": [flag.get() for flag in self.plot_flags]
+                "plot_flags": [flag.get() for flag in self.plot_flags],
+                "plot_type": "boxplot" if hasattr(self, 'boxplot_button') and self.boxplot_button.winfo_ismapped() else "line"
             }
-            
-            # 打开文件对话框选择保存位置
+
+            # Open file dialog to select save location
             file_path = filedialog.asksaveasfilename(defaultextension=".pkl", filetypes=[("Pickle files", "*.pkl")])
             if file_path:
-                # 使用pickle保存数据
+                # Use pickle to save data
                 with open(file_path, "wb") as f:
                     pickle.dump(plot_data, f)
-                messagebox.showinfo("保存成功", f"绘图数据已保存到 {file_path}")
+                messagebox.showinfo("Save Successful", f"Plot data has been saved to {file_path}")
 
     # 添加加载数据方法
     def load_plot_data(self):
-        # 打开文件对话框选择要加载的文件
+        # Open file dialog to select the file to load
         file_path = filedialog.askopenfilename(filetypes=[("Pickle files", "*.pkl")])
         if file_path and os.path.exists(file_path):
-            # 使用pickle加载数据
+            # Use pickle to load data
             with open(file_path, "rb") as f:
                 plot_data = pickle.load(f)
 
-            # 恢复绘图数据和设置
+            # Restore plot data and settings
             self.data = plot_data["data"]
-            self.shift_x_var.set(plot_data["shift_x"])
-            self.shift_y_var.set(plot_data["shift_y"])
-            self.times_x_var.set(plot_data["times_x"])
-            self.times_y_var.set(plot_data["times_y"])
-            self.font_size_var.set(plot_data["font_size"])
-            self.style_var.set(plot_data["style"])
-            self.Boxstyle_var.set(plot_data["Boxstyle"])
+            self.shift_x_var.set(plot_data.get("shift_x", 0.0))
+            self.shift_y_var.set(plot_data.get("shift_y", 0.0))
+            self.times_x_var.set(plot_data.get("times_x", 1.0))
+            self.times_y_var.set(plot_data.get("times_y", 1.0))
+            self.font_size_var.set(plot_data.get("font_size", "18"))
+            self.style_var.set(plot_data.get("style", "PL"))
+            self.Boxstyle_var.set(plot_data.get("Boxstyle", "PCE"))
 
-            # 重建标签和复选框
-            self.create_label_entries()  # 或根据需要调用 create_label_entries_boxplot()
+            # Restore labels and plot flags
+            plot_type = plot_data.get("plot_type", "line")
+            if plot_type == "boxplot":
+                self.create_label_entries_boxplot()  # Use boxplot-specific method
+                self.configure_box_view()  # Configure view for boxplot
+            else:
+                self.create_label_entries()  # Use line plot-specific method
+                self.configure_xy_view()  # Configure view for line plot
+
             for i, entry in enumerate(self.label_entries):
                 entry.insert(0, plot_data["labels"][i])
             for i, flag in enumerate(self.plot_flags):
                 flag.set(plot_data["plot_flags"][i])
 
-            messagebox.showinfo("加载成功", f"绘图数据已从 {file_path} 加载")
-
+            messagebox.showinfo("Load Successful", f"Plot data has been loaded from {file_path}")
 
 if __name__ == "__main__":
     app = DataPlotter()  # 启动应用
