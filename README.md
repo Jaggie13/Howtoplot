@@ -23,10 +23,11 @@ Detailed Instructions:
 4. Save Plot (You can click the orange panel in the main interface to save figures with DPI=1200)
 5. You can save the data and settings for each figure to redraw it anytime (by clicking [Save Raw Data]).
 
-![image](https://github.com/user-attachments/assets/6ec92e94-484f-49d9-aa80-4df42a1e4e3d)
+![image](https://github.com/user-attachments/assets/a56986f0-a7c5-4903-8b30-58c5cc47bff5)
 
 
-![image](https://github.com/user-attachments/assets/570fe808-ef0f-4856-bd73-2272dab9b8bb)
+![image](https://github.com/user-attachments/assets/0ee2cc7d-61c9-44fc-9503-795d8b251e79)
+
 
 
 
