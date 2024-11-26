@@ -31,6 +31,39 @@ class DataPlotter(TkinterDnD.Tk):
         self.state('zoomed')  # 窗口启动时最大化
         self.style = ttkb.Style("lumen")  # 使用现代主题
 
+        # 添加菜单栏
+        self.menu_bar = tk.Menu(self)
+        self.config(menu=self.menu_bar)
+
+        # 创建 "File" 菜单
+        file_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="Save Plot", command=self.save_plot)
+        file_menu.add_command(label="Save Raw Data", command=self.save_plot_data)
+        file_menu.add_command(label="Load Raw Data", command=self.load_plot_data)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.quit)
+
+        file_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Load", menu=file_menu)
+        file_menu.add_command(label="Load Data (XYXY)", command=self.load_data)
+        file_menu.add_command(label="Load Data (XYYY)", command=self.load_and_modify_data)
+        file_menu.add_command(label="Load Data (Boxplot)", command=self.load_data_boxplot)
+        file_menu.add_command(label="Load Data (Matrix)", command=self.load_data_matrix)
+        
+        # 创建 "Plot" 菜单
+        plot_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Plot", menu=plot_menu)
+        plot_menu.add_command(label="Plot XY Data", command=self.plot_data)
+        plot_menu.add_command(label="Plot Boxplot", command=self.plot_boxplot)
+        plot_menu.add_command(label="Plot Violinplot", command=self.plot_violinplot)
+        plot_menu.add_command(label="Plot Heatmap (Matrix)", command=self.plot_heatmap)
+
+        # 创建 "Help" 菜单
+        plot_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Help", menu=plot_menu)
+        plot_menu.add_command(label="About Howtoplot", command=self.about)
+        
         # 设置部件的默认字体和样式
         self.option_add("*Font", "Arial 12")
         self.style.configure("TButton", font=("Arial", 12), padding=5)
@@ -71,14 +104,11 @@ class DataPlotter(TkinterDnD.Tk):
 
         # 配置 data_load_frame 的 grid 权重
         data_load_frame.grid_rowconfigure(0, weight=1)
-        data_load_frame.grid_rowconfigure(1, weight=1)
         data_load_frame.grid_columnconfigure(0, weight=1)
 
-        self.load_button = ttkb.Button(data_load_frame, text="Load Data (XYXY)", bootstyle="primary", command=self.load_data)
-        self.load_button.grid(row=0, column=0, pady=5, padx=5, sticky="nsew")
-
-        self.drop_area_xyxy = ttkb.Label(data_load_frame, text="Drag & Drop File Here (XYXY)", relief="ridge", bootstyle="info", padding=10, anchor="center")
-        self.drop_area_xyxy.grid(row=1, column=0, pady=5, padx=5, sticky="nsew")
+        # 删除按钮，保留拖入功能
+        self.drop_area_xyxy = ttkb.Label(data_load_frame, text="Drag Here (XYXY)", relief="ridge", bootstyle="info", padding=10, anchor="center")
+        self.drop_area_xyxy.grid(row=0, column=0, pady=5, padx=5, sticky="nsew")
         self.drop_area_xyxy.drop_target_register(DND_FILES)
         self.drop_area_xyxy.dnd_bind('<<Drop>>', self.on_drop_xyxy)
 
@@ -88,14 +118,11 @@ class DataPlotter(TkinterDnD.Tk):
 
         # 配置 data_load_xyyy_frame 的 grid 权重
         data_load_xyyy_frame.grid_rowconfigure(0, weight=1)
-        data_load_xyyy_frame.grid_rowconfigure(1, weight=1)
         data_load_xyyy_frame.grid_columnconfigure(0, weight=1)
 
-        self.load_button_modified = ttkb.Button(data_load_xyyy_frame, text="Load Data (XYYY)", bootstyle="primary", command=self.load_and_modify_data)
-        self.load_button_modified.grid(row=0, column=0, pady=5, padx=5, sticky="nsew")
-
-        self.drop_area_xyyy = ttkb.Label(data_load_xyyy_frame, text="Drag & Drop File Here (XYYY)", relief="ridge", bootstyle="info", padding=10, anchor="center")
-        self.drop_area_xyyy.grid(row=1, column=0, pady=5, padx=5, sticky="nsew")
+        # 删除按钮，保留拖入功能
+        self.drop_area_xyyy = ttkb.Label(data_load_xyyy_frame, text="Drag Here (XYYY)", relief="ridge", bootstyle="info", padding=10, anchor="center")
+        self.drop_area_xyyy.grid(row=0, column=0, pady=5, padx=5, sticky="nsew")
         self.drop_area_xyyy.drop_target_register(DND_FILES)
         self.drop_area_xyyy.dnd_bind('<<Drop>>', self.on_drop_xyyy)
 
@@ -105,14 +132,11 @@ class DataPlotter(TkinterDnD.Tk):
 
         # 配置 data_load_box_frame 的 grid 权重
         data_load_box_frame.grid_rowconfigure(0, weight=1)
-        data_load_box_frame.grid_rowconfigure(1, weight=1)
         data_load_box_frame.grid_columnconfigure(0, weight=1)
 
-        self.load_button_labels = ttkb.Button(data_load_box_frame, text="Load Box Data", bootstyle="primary", command=self.load_data_boxplot)
-        self.load_button_labels.grid(row=0, column=0, pady=5, padx=5, sticky="nsew")
-
-        self.drop_area_box = ttkb.Label(data_load_box_frame, text="Drag & Drop File Here (Box)", relief="ridge", bootstyle="info", padding=10, anchor="center")
-        self.drop_area_box.grid(row=1, column=0, pady=5, padx=5, sticky="nsew")
+        # 删除按钮，保留拖入功能
+        self.drop_area_box = ttkb.Label(data_load_box_frame, text="Drag Here (Box)", relief="ridge", bootstyle="info", padding=10, anchor="center")
+        self.drop_area_box.grid(row=0, column=0, pady=5, padx=5, sticky="nsew")
         self.drop_area_box.drop_target_register(DND_FILES)
         self.drop_area_box.dnd_bind('<<Drop>>', self.on_drop_box)
 
@@ -161,7 +185,7 @@ class DataPlotter(TkinterDnD.Tk):
         self.font_size_menu.grid(row=2, column=1, pady=5, padx=5, sticky="ew")
 
         # 轴偏移和缩放设置
-        axis_settings_frame = ttkb.LabelFrame(left_frame, text="Axis Settings", padding="10 10 10 10")
+        axis_settings_frame = ttkb.LabelFrame(left_frame, text="Data Settings", padding="10 10 10 10")
         axis_settings_frame.grid(row=3, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
 
         # 配置 axis_settings_frame 的 grid 权重
@@ -196,34 +220,6 @@ class DataPlotter(TkinterDnD.Tk):
         self.times_y_var = tk.DoubleVar(value=1.0)
         self.times_y_entry = ttkb.Entry(axis_settings_frame, textvariable=self.times_y_var)
         self.times_y_entry.grid(row=1, column=3, pady=5, padx=5, sticky="ew")
-
-        # 绘图和保存按钮
-        action_frame = ttkb.LabelFrame(left_frame, text="Actions", padding="10 10 10 10")
-        action_frame.grid(row=4, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
-
-        # 配置 action_frame 的 grid 权重
-        action_frame.grid_rowconfigure(0, weight=1)
-        action_frame.grid_rowconfigure(1, weight=1)
-        action_frame.grid_columnconfigure(0, weight=1)
-        action_frame.grid_columnconfigure(1, weight=1)
-        action_frame.grid_columnconfigure(2, weight=1)
-
-        # 行 1：主要操作按钮
-        self.plot_button = ttkb.Button(action_frame, text="Plot Data", bootstyle="success-outline", command=self.plot_data)
-        self.plot_button.grid(row=0, column=0, padx=10, pady=5, sticky="nsew")
-
-        self.boxplot_button = ttkb.Button(action_frame, text="Plot Boxplot", bootstyle="success-outline", command=self.plot_boxplot)
-        self.boxplot_button.grid(row=0, column=1, padx=10, pady=5, sticky="nsew")
-
-        self.save_button = ttkb.Button(action_frame, text="Save Plot", bootstyle="warning-outline", command=self.save_plot)
-        self.save_button.grid(row=0, column=2, padx=10, pady=5, sticky="nsew")
-
-        # 行 2：附加的保存和加载按钮
-        self.save_data_button = ttkb.Button(action_frame, text="Save Raw Data", bootstyle="secondary-outline", command=self.save_plot_data)
-        self.save_data_button.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
-
-        self.load_data_button = ttkb.Button(action_frame, text="Load Raw Data", bootstyle="info-outline", command=self.load_plot_data)
-        self.load_data_button.grid(row=1, column=1, padx=10, pady=5, sticky="nsew")
 
         # 右侧框架用于显示 tksheet
         right_frame = ttkb.Frame(main_frame, padding="10 10 10 10")
@@ -316,16 +312,12 @@ class DataPlotter(TkinterDnD.Tk):
         self.times_x_entry.grid()
         self.times_y_label.grid()
         self.times_y_entry.grid()
-        self.plot_button.grid()
-        self.save_button.grid()
         self.Boxstyle_label.grid()
         self.Boxstyle_menu.grid()
-        self.boxplot_button.grid()
 
     def configure_xy_view(self):
         # 设置 XY 图的特定显示元素
         self.show_widgets()
-        self.boxplot_button.grid_remove()
         self.Boxstyle_label.grid_remove()
         self.Boxstyle_menu.grid_remove()
 
@@ -342,7 +334,6 @@ class DataPlotter(TkinterDnD.Tk):
         self.times_x_entry.grid_remove()
         self.times_y_label.grid_remove()
         self.times_y_entry.grid_remove()
-        self.plot_button.grid_remove()
 
     def load(self, file_path):
         # 根据文件扩展名选择加载方法
@@ -468,6 +459,20 @@ class DataPlotter(TkinterDnD.Tk):
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load data: {e}")
 
+    def load_data_matrix(self):
+        """通过文件选择对话框加载矩阵数据"""
+        file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt"), ("Excel files", "*.xls;*.xlsx")])
+        if file_path:
+            try:
+                self.load(file_path)
+                if not self.data.ndim == 2:
+                    raise ValueError("Matrix data should have two dimensions.")
+                messagebox.showinfo("Load Complete", "Matrix data loaded successfully.")
+                # 显示数据到 tksheet
+                self.display_data_in_sheet()
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to load matrix data: {e}")
+
     def create_label_entries(self):
         # 清除先前的标签输入
         for widget in self.label_container.winfo_children():
@@ -570,10 +575,6 @@ class DataPlotter(TkinterDnD.Tk):
             ax.tick_params(axis='both', which='major', width=1, labelsize=font_size)
             ax.tick_params(axis='both', which='minor', width=1, labelsize=font_size)
             ax.minorticks_on()
-            ax.spines['top'].set_linewidth(1)
-            ax.spines['right'].set_linewidth(1)
-            ax.spines['bottom'].set_linewidth(1)
-            ax.spines['left'].set_linewidth(1)
             plt.tight_layout()
             plt.show()
         else:
@@ -615,16 +616,88 @@ class DataPlotter(TkinterDnD.Tk):
 
             ax.set_ylabel(style_labels.get(style, ""), fontsize=font_size)
 
-            # 设置图形边框线宽
-            ax.spines['top'].set_linewidth(1)
-            ax.spines['right'].set_linewidth(1)
-            ax.spines['bottom'].set_linewidth(1)
-            ax.spines['left'].set_linewidth(1)
+            plt.tight_layout()
+            plt.show()
+        else:
+            messagebox.showerror("Error", "Please load data first")
+
+    def plot_violinplot(self):
+        if self.data is not None:
+            # 更新数据
+            self.update_data_from_sheet()
+            selected_data = [
+                pd.to_numeric(self.data.iloc[:, i], errors='coerce').fillna(self.data.iloc[:, i].median())
+                for i in range(self.data.shape[1]) if self.plot_flags[i].get()
+            ]
+            if not selected_data:
+                messagebox.showerror("Error", "No data selected for plotting.")
+                return
+
+            filtered_data = pd.concat(selected_data, axis=1)
+
+            # 获取对应的标签
+            labels = [self.label_entries[i].get() if self.label_entries[i].get() else f"Data Set {i + 1}" for i in range(self.data.shape[1]) if self.plot_flags[i].get()]
+
+            self.fig, ax = plt.subplots()
+
+            # 更新字体大小
+            font_size = int(self.font_size_var.get())
+            rcParams.update({'font.size': font_size})
+
+            # 绘制小提琴图
+            parts = ax.violinplot(filtered_data.values, showmeans=False, showmedians=True)
+
+            # 配置小提琴图的其他部分
+            for key in ['cmeans', 'cmedians', 'cbars', 'cmaxes', 'cmins']:
+                if key in parts:
+                    parts[key].set_linewidth(1)
+
+            # 设置 X 轴标签
+            ax.set_xticks(range(1, len(labels) + 1))
+            ax.set_xticklabels(labels, fontsize=font_size)
+
+            # 根据选择的样式设置 Y 轴标签
+            style = self.Boxstyle_var.get()
+            style_labels = {
+                "PCE": r"$\mathrm{PCE\ (\%)}$",
+                "Voc": r"$\mathrm{V_{OC}\ (mV)}$",
+                "Jsc": r"$\mathrm{J_{SC}\ (mA/cm^{2})}$",
+                "FF": r"$\mathrm{FF}$"
+            }
+
+            ax.set_ylabel(style_labels.get(style, ""), fontsize=font_size)
 
             plt.tight_layout()
             plt.show()
         else:
             messagebox.showerror("Error", "Please load data first")
+
+    def plot_heatmap(self):
+        """绘制热图 (pcolormesh)"""
+        if self.data is not None:
+            try:
+                # 更新数据
+                self.update_data_from_sheet()
+                data_matrix = self.data.astype(float).values  # 确保数据是浮点型
+                self.fig, ax = plt.subplots()
+
+                # 更新字体大小
+                font_size = int(self.font_size_var.get())
+                rcParams.update({'font.size': font_size})
+
+                # 使用 pcolormesh 绘制
+                mesh = ax.pcolormesh(data_matrix, cmap="viridis", shading='auto')
+                plt.colorbar(mesh, ax=ax)
+
+                ax.set_xlabel("Columns", fontsize=font_size)
+                ax.set_ylabel("Rows", fontsize=font_size)
+
+                plt.tight_layout()
+                plt.show()
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to plot heatmap: {e}")
+        else:
+            messagebox.showerror("Error", "Please load matrix data first")
 
     def save_plot(self):
         if self.data is not None and hasattr(self, 'fig') and self.fig is not None:
@@ -700,6 +773,21 @@ class DataPlotter(TkinterDnD.Tk):
             # 显示数据到 tksheet
             self.display_data_in_sheet()
             messagebox.showinfo("Load Successful", f"Plot data has been loaded from {file_path}")
+
+    def about(self):
+        """显示关于 Howtoplot 的信息"""
+        about_message = (
+            "Howtoplot\n"
+            "Version: 1.0.0\n"
+            "Author: Jiaqi Liu\n"
+            "Contact: liujiaqi@uec.ac.jp\n\n"
+            "Howtoplot is a versatile data plotting tool designed to handle "
+            "various data formats and generate customizable plots, including "
+            "line plots, boxplots, violin plots, and heatmaps. It supports drag-and-drop "
+            "functionality for easy data loading and provides a modern, user-friendly interface.\n\n"
+            "For help or more information, please contact the author."
+        )
+        messagebox.showinfo("About Howtoplot", about_message)
 
 if __name__ == "__main__":
     app = DataPlotter()  # 启动应用
