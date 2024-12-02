@@ -43,12 +43,13 @@ class DataPlotter(TkinterDnD.Tk):
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.quit)
 
-        file_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="Load", menu=file_menu)
-        file_menu.add_command(label="Load Data (XYXY)", command=self.load_data)
-        file_menu.add_command(label="Load Data (XYYY)", command=self.load_and_modify_data)
-        file_menu.add_command(label="Load Data (Boxplot)", command=self.load_data_boxplot)
-        file_menu.add_command(label="Load Data (Matrix)", command=self.load_data_matrix)
+        # 创建 "Load" 菜单
+        load_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Load", menu=load_menu)
+        load_menu.add_command(label="Load Data (XYXY)", command=self.load_data)
+        load_menu.add_command(label="Load Data (XYYY)", command=self.load_and_modify_data)
+        load_menu.add_command(label="Load Data (Boxplot)", command=self.load_data_boxplot)
+        load_menu.add_command(label="Load Data (Matrix)", command=self.load_data_matrix)
         
         # 创建 "Plot" 菜单
         plot_menu = tk.Menu(self.menu_bar, tearoff=0)
@@ -66,9 +67,10 @@ class DataPlotter(TkinterDnD.Tk):
         export_menu.add_command(label="Export Plot Code", command=self.export_plot_code)
 
         # 创建 "Help" 菜单
-        plot_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="Help", menu=plot_menu)
-        plot_menu.add_command(label="About Howtoplot", command=self.about)
+        help_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="Manual", command=self.manual) 
+        help_menu.add_command(label="About Howtoplot", command=self.about)
         
         # 设置部件的默认字体和样式
         self.option_add("*Font", "Arial 12")
@@ -1016,7 +1018,48 @@ class DataPlotter(TkinterDnD.Tk):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate plotting code from JSON: {e}")
 
-
+    def manual(self):
+        """Display the user manual"""
+        manual_message = (
+            "User Manual - Howtoplot\n\n"
+            "Overview:\n"
+            "Howtoplot is a versatile data plotting tool designed to handle various data formats and generate customizable plots, including line plots, boxplots, violin plots, and heatmaps. It supports drag-and-drop functionality for easy data loading and provides a modern, user-friendly interface.\n\n"
+            "Features:\n"
+            "1. **Data Loading**:\n"
+            "   - **Load Data (XYXY)**: Load data with alternating X and Y columns (e.g., X1, Y1, X2, Y2, ...).\n"
+            "   - **Load Data (XYYY)**: Load data with one X column followed by multiple Y columns (e.g., X, Y1, Y2, Y3, ...).\n"
+            "   - **Load Data (Boxplot)**: Load data suitable for boxplots.\n"
+            "   - **Load Data (Matrix)**: Load matrix data for heatmaps.\n\n"
+            "2. **Plotting Functions**:\n"
+            "   - **Plot XY Data**: Create line plots using the loaded XY data.\n"
+            "   - **Plot Boxplot**: Generate boxplots from the loaded data.\n"
+            "   - **Plot Violinplot**: Generate violin plots from the loaded data.\n"
+            "   - **Plot Heatmap (Matrix)**: Generate heatmaps based on matrix data.\n"
+            "   - **Plot from JSON**: Load plot parameters from a JSON file to recreate a plot.\n\n"
+            "3. **Export Functions**:\n"
+            "   - **Export Plot Code**: Generate standalone Python plotting code.\n\n"
+            "4. **Settings Options**:\n"
+            "   - Adjust plot style, font size, data shifts, and scaling factors.\n"
+            "   - Toggle the display of legends.\n\n"
+            "5. **Data Manipulation**:\n"
+            "   - Use a spreadsheet-like interface to view and edit data.\n"
+            "   - Set labels for each dataset and select which datasets to plot.\n\n"
+            "6. **Drag-and-Drop Functionality**:\n"
+            "   - Drag and drop files into designated areas to quickly load data.\n\n"
+            "7. **Help**:\n"
+            "   - **Manual**: Display this user manual.\n"
+            "   - **About Howtoplot**: View information about the application and the author.\n\n"
+            "Instructions:\n"
+            "- **Loading Data**: Use the 'Load' menu or drag and drop files into the appropriate areas to load your data.\n"
+            "- **Editing Data**: After loading, the data will be displayed in a table where you can edit it as needed.\n"
+            "- **Setting Labels**: Provide labels for each dataset in the 'Data Set Labels' section. You can also select or deselect datasets for plotting.\n"
+            "- **Adjusting Settings**: Use the 'Settings' and 'Data Settings' sections to customize your plot.\n"
+            "- **Plotting**: Use the 'Plot' menu to generate the desired plot type.\n"
+            "- **Exporting Code**: After plotting, you can export the plotting code using the 'Export' menu.\n"
+            "- **Saving Plots**: Use the 'File' menu to save your plot as an image.\n\n"
+            "For detailed examples and further assistance, please refer to the documentation or contact support."
+        )
+        messagebox.showinfo("Manual", manual_message)
 
     def about(self):
         """显示关于 Howtoplot 的信息"""
