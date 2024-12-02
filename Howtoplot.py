@@ -12,6 +12,7 @@ import os
 import ctypes
 ctypes.windll.shcore.SetProcessDpiAwareness(0)  # 解决缩放
 from tksheet import Sheet
+import json
 
 # Global font configuration for plots
 rcParams.update({
@@ -30,7 +31,7 @@ class DataPlotter(TkinterDnD.Tk):
         self.geometry(f"{screen_width}x{screen_height}")
         self.state('zoomed')  # 窗口启动时最大化
         self.style = ttkb.Style("lumen")  # 使用现代主题
-
+        
         # 添加菜单栏
         self.menu_bar = tk.Menu(self)
         self.config(menu=self.menu_bar)
@@ -38,9 +39,7 @@ class DataPlotter(TkinterDnD.Tk):
         # 创建 "File" 菜单
         file_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="Save Plot", command=self.save_plot)
-        file_menu.add_command(label="Save Raw Data", command=self.save_plot_data)
-        file_menu.add_command(label="Load Raw Data", command=self.load_plot_data)
+        file_menu.add_command(label="Save Plot (1200 DPI)", command=self.save_plot)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.quit)
 
@@ -58,6 +57,13 @@ class DataPlotter(TkinterDnD.Tk):
         plot_menu.add_command(label="Plot Boxplot", command=self.plot_boxplot)
         plot_menu.add_command(label="Plot Violinplot", command=self.plot_violinplot)
         plot_menu.add_command(label="Plot Heatmap (Matrix)", command=self.plot_heatmap)
+        plot_menu.add_separator()
+        plot_menu.add_command(label="Plot from json", command=self.json_plot)
+
+        # 创建代码导出
+        export_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Export", menu=export_menu)
+        export_menu.add_command(label="Export Plot Code", command=self.export_plot_code)
 
         # 创建 "Help" 菜单
         plot_menu = tk.Menu(self.menu_bar, tearoff=0)
@@ -336,12 +342,11 @@ class DataPlotter(TkinterDnD.Tk):
         self.times_y_entry.grid_remove()
 
     def load(self, file_path):
-        # 根据文件扩展名选择加载方法
+        # 保存文件路径为实例变量
+        self.current_file_path = file_path  # 保存当前文件路径
         if file_path.endswith('.txt'):
-            # 使用 pandas 读取 txt 文件，支持不同行列数并填充缺失值
             self.data = pd.read_csv(file_path, delim_whitespace=True, header=None)
         elif file_path.endswith(('.xls', '.xlsx')):
-            # 使用 pandas 读取 Excel 文件
             self.data = pd.read_excel(file_path, header=None)
         else:
             raise ValueError("Unsupported file format")
@@ -576,7 +581,10 @@ class DataPlotter(TkinterDnD.Tk):
             ax.tick_params(axis='both', which='minor', width=1, labelsize=font_size)
             ax.minorticks_on()
             plt.tight_layout()
+            # 注册事件监听
+            self.fig.canvas.mpl_connect('draw_event', self.on_draw)
             plt.show()
+
         else:
             messagebox.showerror("Error", "Please load data first")
 
@@ -617,6 +625,8 @@ class DataPlotter(TkinterDnD.Tk):
             ax.set_ylabel(style_labels.get(style, ""), fontsize=font_size)
 
             plt.tight_layout()
+            # 注册事件监听
+            self.fig.canvas.mpl_connect('draw_event', self.on_draw)            
             plt.show()
         else:
             messagebox.showerror("Error", "Please load data first")
@@ -668,6 +678,8 @@ class DataPlotter(TkinterDnD.Tk):
             ax.set_ylabel(style_labels.get(style, ""), fontsize=font_size)
 
             plt.tight_layout()
+            # 注册事件监听
+            self.fig.canvas.mpl_connect('draw_event', self.on_draw)
             plt.show()
         else:
             messagebox.showerror("Error", "Please load data first")
@@ -693,6 +705,8 @@ class DataPlotter(TkinterDnD.Tk):
                 ax.set_ylabel("Rows", fontsize=font_size)
 
                 plt.tight_layout()
+                # 注册事件监听
+                self.fig.canvas.mpl_connect('draw_event', self.on_draw)
                 plt.show()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to plot heatmap: {e}")
@@ -718,61 +732,291 @@ class DataPlotter(TkinterDnD.Tk):
         else:
             messagebox.showerror("Error", "Please load data and plot it first")
 
-    # 保存数据方法
-    def save_plot_data(self):
-        if self.data is not None:
-            plot_data = {
-                "data": self.data,
-                "labels": [entry.get() if entry.get() else f"Data Set {i + 1}" for i, entry in enumerate(self.label_entries)],
-                "shift_x": self.shift_x_var.get(),
-                "shift_y": self.shift_y_var.get(),
-                "times_x": self.times_x_var.get(),
-                "times_y": self.times_y_var.get(),
-                "font_size": self.font_size_var.get(),
-                "style": self.style_var.get(),
-                "Boxstyle": self.Boxstyle_var.get(),
-                "plot_flags": [flag.get() for flag in self.plot_flags],
-                "plot_type": "boxplot" if hasattr(self, 'boxplot_button') and self.boxplot_button.winfo_ismapped() else "line"
-            }
+    def extract_interactive_params(self, ax):
+        """
+        提取交互后绘图的所有参数，包括坐标轴、线条、图例等。
+        """
+        params = {
+            "xlim": list(ax.get_xlim()),
+            "ylim": list(ax.get_ylim()),
+            "xlabel": ax.get_xlabel(),
+            "ylabel": ax.get_ylabel(),
+            "title": ax.get_title(),
+            "grid": {
+                "x": ax.xaxis._major_tick_kw.get('gridOn', False),
+                "y": ax.yaxis._major_tick_kw.get('gridOn', False)
+            },
+            "lines": [
+                {
+                    "xdata": line.get_xdata().tolist(),
+                    "ydata": line.get_ydata().tolist(),
+                    "color": line.get_color(),
+                    "linestyle": line.get_linestyle(),
+                    "linewidth": line.get_linewidth(),
+                    "marker": line.get_marker(),
+                    "label": getattr(line, '_custom_label', line.get_label()),
+                    "x_column_index": getattr(line, '_x_column_index', None),
+                    "y_column_index": getattr(line, '_y_column_index', None),
+                }
+                for line in ax.get_lines()
+            ],
+            "legend": {
+                "visible": ax.get_legend() is not None,
+                "location": ax.get_legend()._loc if ax.get_legend() else None,
+                "fontsize": ax.get_legend().get_texts()[0].get_fontsize() if ax.get_legend() and ax.get_legend().get_texts() else None,
+                "frameon": ax.get_legend().get_frame_on() if ax.get_legend() else None,
+            } if ax.get_legend() else None,
+            "tick_params": {
+                "xticks": ax.get_xticks().tolist(),
+                "yticks": ax.get_yticks().tolist(),
+                "xticklabels": [label.get_text() for label in ax.get_xticklabels()],
+                "yticklabels": [label.get_text() for label in ax.get_yticklabels()]
+            },
+            "font_size": plt.rcParams['font.size'],
+        }
+        return params
 
-            file_path = filedialog.asksaveasfilename(defaultextension=".pkl", filetypes=[("Pickle files", "*.pkl")])
-            if file_path:
-                with open(file_path, "wb") as f:
-                    pickle.dump(plot_data, f)
-                messagebox.showinfo("Save Successful", f"Plot data has been saved to {file_path}")
 
-    # 加载数据方法
-    def load_plot_data(self):
-        file_path = filedialog.askopenfilename(filetypes=[("Pickle files", "*.pkl")])
-        if file_path and os.path.exists(file_path):
-            with open(file_path, "rb") as f:
-                plot_data = pickle.load(f)
-
-            self.data = plot_data["data"]
-            self.shift_x_var.set(plot_data.get("shift_x", 0.0))
-            self.shift_y_var.set(plot_data.get("shift_y", 0.0))
-            self.times_x_var.set(plot_data.get("times_x", 1.0))
-            self.times_y_var.set(plot_data.get("times_y", 1.0))
-            self.font_size_var.set(plot_data.get("font_size", "18"))
-            self.style_var.set(plot_data.get("style", "PL"))
-            self.Boxstyle_var.set(plot_data.get("Boxstyle", "PCE"))
-
-            plot_type = plot_data.get("plot_type", "line")
-            if plot_type == "boxplot":
-                self.create_label_entries_boxplot()
-                self.configure_box_view()
+    def on_draw(self, event):
+        """
+        处理交互完成后的绘图事件，提取并保存所有参数。
+        """
+        try:
+            ax = event.canvas.figure.axes[0]  # 获取当前绘图的坐标轴
+            params = self.extract_interactive_params(ax)  # 提取参数
+            if hasattr(self, 'current_file_path'):
+                self.save_params(params, self.current_file_path)  # 使用加载的数据文件路径保存参数
             else:
-                self.create_label_entries()
-                self.configure_xy_view()
+                self.save_params(params, None)  # 如果没有路径，使用默认文件名保存
+        except Exception as e:
+            print(f"Error capturing parameters: {e}")
 
-            for i, entry in enumerate(self.label_entries):
-                entry.insert(0, plot_data["labels"][i])
-            for i, flag in enumerate(self.plot_flags):
-                flag.set(plot_data["plot_flags"][i])
 
-            # 显示数据到 tksheet
-            self.display_data_in_sheet()
-            messagebox.showinfo("Load Successful", f"Plot data has been loaded from {file_path}")
+    def save_params(self, params, data_file_path=None):
+        """保存捕获的参数到 JSON 文件，文件名与数据文件名称匹配"""
+        if data_file_path:
+            # 从数据文件路径生成参数文件名
+            base_name = os.path.splitext(os.path.basename(data_file_path))[0]  # 获取数据文件名（无扩展名）
+            filename = f"{base_name}.json"  # 添加 '_params.json' 后缀
+        else:
+            filename = "plot_params.json"  # 默认文件名
+
+        try:
+            with open(filename, "w") as f:
+                json.dump(params, f, indent=4)
+            print(f"Parameters saved to {filename}")
+        except Exception as e:
+            print(f"Error saving parameters: {e}")
+
+
+    def load_params(self, filename=None):
+        """加载保存的绘图参数，支持文件选择"""
+        if filename is None:
+            # 打开文件选择对话框
+            filename = filedialog.askopenfilename(
+                title="Select Plot Parameters File",
+                filetypes=[("JSON Files", "*.json")]
+            )
+        if not filename:
+            # 用户取消了文件选择
+            messagebox.showwarning("Warning", "No file selected. Parameters not loaded.")
+            return None
+
+        try:
+            with open(filename, "r") as f:
+                params = json.load(f)
+            return params
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load parameters: {e}")
+            return None
+
+    def apply_params(self, ax, params):
+        """将保存的参数应用到图形"""
+        # 清空线条并重新绘制
+        ax.clear()
+        for line_params in params["lines"]:
+            ax.plot(
+                line_params["xdata"],
+                line_params["ydata"],
+                color=line_params["color"],
+                linestyle=line_params["linestyle"],
+                linewidth=line_params["linewidth"],
+                marker=line_params["marker"],
+                label=line_params["label"]
+            )
+
+        if params.get("legend", {}).get("visible", False):
+            legend = ax.legend(
+                loc=params["legend"].get("location", 'best'),
+                fontsize=params["legend"].get("fontsize", params.get('font_size', 12)),
+                frameon=params["legend"].get("frameon", True)
+            )
+
+        ax.set_xlabel(params["xlabel"])
+        ax.set_ylabel(params["ylabel"])
+        ax.set_title(params["title"])
+
+        # 设置网格
+        ax.grid(params["grid"]["x"], axis="x")
+        ax.grid(params["grid"]["y"], axis="y")
+
+        # 设置刻度
+        ax.set_xticks(params["tick_params"]["xticks"])
+        ax.set_yticks(params["tick_params"]["yticks"])
+        ax.set_xticklabels(params["tick_params"]["xticklabels"])
+        ax.set_yticklabels(params["tick_params"]["yticklabels"])
+
+        # 应用 xlim 和 ylim
+        if "xlim" in params:
+            ax.set_xlim(params["xlim"])
+        if "ylim" in params:
+            ax.set_ylim(params["ylim"])
+
+
+    def json_plot(self):
+        """选择并加载 JSON 文件以恢复保存的绘图"""
+        # 打开文件选择对话框
+        file_path = filedialog.askopenfilename(
+            title="Select JSON File",
+            filetypes=[("JSON Files", "*.json")]
+        )
+        
+        if file_path:  # 确保用户选择了文件
+            try:
+                # 加载 JSON 文件中的参数
+                params = self.load_params(file_path)
+                self.fig, ax = plt.subplots()
+                # 应用参数到绘图
+                self.apply_params(ax, params)
+                plt.tight_layout()
+                self.current_file_path = file_path  # 保存当前文件路径
+                # 注册事件监听
+                self.fig.canvas.mpl_connect('draw_event', self.on_draw)
+                plt.show()
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to restore plot from {file_path}: {e}")
+        else:
+            # 用户取消选择时提示
+            messagebox.showinfo("Info", "No file selected.")
+
+    def export_plot_code(self):
+        """Generate and export complete Python plotting code that imports data from a JSON file."""
+        try:
+            # Select JSON file
+            json_file_path = filedialog.askopenfilename(
+                title="Select JSON File",
+                filetypes=[("JSON Files", "*.json")]
+            )
+            if not json_file_path:
+                messagebox.showinfo("Cancelled", "No file selected.")
+                return
+
+            # Load parameters from JSON file
+            with open(json_file_path, "r", encoding="utf-8") as f:
+                params = json.load(f)
+
+            # Ensure parameters are valid
+            if not params.get("lines") or len(params["lines"]) == 0:
+                raise ValueError("No valid plotting parameters in the JSON file.")
+
+            # Get the base name of the JSON file to use in the code
+            json_file_name = os.path.basename(json_file_path)
+            code_file_name = os.path.splitext(json_file_name)[0] + ".py"
+
+            # Generate code that imports data from the JSON file
+            code_lines = [
+                "import json",
+                "import matplotlib.pyplot as plt",
+                "",
+                f"# Load data from JSON file '{json_file_name}'",
+                f"with open('{json_file_name}', 'r', encoding='utf-8') as f:",
+                "    params = json.load(f)",
+                "",
+                "# Set global font size",
+                f"plt.rcParams['font.size'] = {params.get('font_size', 12)}",
+                "",
+                "# Create the plot",
+                "fig, ax = plt.subplots()",
+                "",
+                "# Plot each line",
+                "for line_params in params['lines']:",
+                "    xdata = line_params['xdata']",
+                "    ydata = line_params['ydata']",
+                "    label = line_params.get('label', '')",
+                "    ax.plot(",
+                "        xdata,",
+                "        ydata,",
+                "        color=line_params.get('color', 'blue'),",
+                "        linestyle=line_params.get('linestyle', '-'),",
+                "        linewidth=line_params.get('linewidth', 1.5),",
+                "        marker=line_params.get('marker', ''),",
+                "        label=label",
+                "    )",
+                "",
+                "# Set axis labels and title",
+                f"ax.set_xlabel({repr(params['xlabel'])}, fontsize={params.get('font_size', 12)})",
+                f"ax.set_ylabel({repr(params['ylabel'])}, fontsize={params.get('font_size', 12)})",
+                f"ax.set_title({repr(params['title'])}, fontsize={params.get('font_size', 12)})",
+                "",
+                "# Set axis limits if they exist",
+                "if 'xlim' in params:",
+                "    ax.set_xlim(params['xlim'])",
+                "if 'ylim' in params:",
+                "    ax.set_ylim(params['ylim'])",
+                "",
+                "# Add grid if specified",
+                "if params.get('grid', {}).get('x', False):",
+                "    ax.grid(True, axis='x')",
+                "if params.get('grid', {}).get('y', False):",
+                "    ax.grid(True, axis='y')",
+                "",
+                "# Set ticks and tick labels if specified",
+                "if 'tick_params' in params:",
+                "    tick_params = params['tick_params']",
+                "    ax.set_xticks(tick_params.get('xticks', []))",
+                "    ax.set_yticks(tick_params.get('yticks', []))",
+                "    ax.set_xticklabels(tick_params.get('xticklabels', []), fontsize=params.get('font_size', 12))",
+                "    ax.set_yticklabels(tick_params.get('yticklabels', []), fontsize=params.get('font_size', 12))",
+                "",
+                "# Set tick parameters",
+                f"ax.tick_params(axis='both', which='major', labelsize={params.get('font_size', 12)})",
+                "",
+                "# Add legend if specified",
+                "if params.get('legend', {}).get('visible', False):",
+                "    legend_params = params['legend']",
+                "    ax.legend(",
+                "        loc=legend_params.get('location', 'best'),",
+                "        fontsize=legend_params.get('fontsize', params.get('font_size', 12)),",
+                "        frameon=legend_params.get('frameon', True)",
+                "    )",
+                "",
+                "plt.tight_layout()",
+                "plt.show()",
+            ]
+
+            # Save generated code to file with the same name as JSON file
+            save_path = filedialog.asksaveasfilename(
+                title="Save Python Code",
+                defaultextension=".py",
+                initialfile=code_file_name,
+                filetypes=[("Python Files", "*.py")]
+            )
+            if save_path:
+                # Copy the JSON file to the same directory as the code file
+                import shutil
+                json_destination = os.path.join(os.path.dirname(save_path), json_file_name)
+                if not os.path.exists(json_destination):
+                    shutil.copy(json_file_path, json_destination)
+
+                with open(save_path, "w", encoding="utf-8") as f:
+                    f.write("\n".join(code_lines))
+                messagebox.showinfo("Export Completed", f"Code successfully exported to {save_path}")
+            else:
+                messagebox.showinfo("Export Cancelled", "No file selected.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to generate plotting code from JSON: {e}")
+
+
 
     def about(self):
         """显示关于 Howtoplot 的信息"""
