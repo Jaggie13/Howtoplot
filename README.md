@@ -6,7 +6,8 @@ For Howtoplot.py
 1. Install Python. (https://www.python.org/downloads/)
 2. Run Howtoplot.py in Python.
 3. Install the lacked modules. (pip install tkinterdnd2 ttkbootstrap matplotlib pandas tksheet jsonpickle)
-4. Run Howtoplot.py in Python.
+4. You may need the LATEX for the Computer Modern font, or you can set another font to avoid LATEX environment.
+5. Run Howtoplot.py in Python.
 
 Detailed Instructions:
 1. Load Data. You can also drag your .txt (.xls, .xlsx) file into a specified region.
