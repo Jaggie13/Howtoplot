@@ -17,9 +17,9 @@ import json
 # Global font configuration for plots
 rcParams.update({
     'font.size': 16,
-    'text.usetex': False,
+    'text.usetex': True,
     'font.family': 'serif',
-    'font.serif': ['Times New Roman']
+    'font.serif': ['Computer Modern']
 })
 
 class DataPlotter(TkinterDnD.Tk):
@@ -30,7 +30,7 @@ class DataPlotter(TkinterDnD.Tk):
         screen_height = self.winfo_screenheight()
         self.geometry(f"{screen_width}x{screen_height}")
         self.state('zoomed')  # 窗口启动时最大化
-        self.style = ttkb.Style("lumen")  # 使用现代主题
+        self.style = ttkb.Style("flatly")  # 使用现代主题
         
         # 添加菜单栏
         self.menu_bar = tk.Menu(self)
@@ -60,6 +60,8 @@ class DataPlotter(TkinterDnD.Tk):
         plot_menu.add_command(label="Plot Heatmap (Matrix)", command=self.plot_heatmap)
         plot_menu.add_separator()
         plot_menu.add_command(label="Plot from json", command=self.json_plot)
+        plot_menu.add_separator()
+        plot_menu.add_command(label="Group Figure", command=self.plot_composite_figure)
 
         # 创建代码导出
         export_menu = tk.Menu(self.menu_bar, tearoff=0)
@@ -73,11 +75,8 @@ class DataPlotter(TkinterDnD.Tk):
         help_menu.add_command(label="About Howtoplot", command=self.about)
         
         # 设置部件的默认字体和样式
-        self.option_add("*Font", "Arial 12")
-        self.style.configure("TButton", font=("Arial", 12), padding=5)
-        self.style.configure("TLabel", font=("Arial", 12))
-        self.style.configure("TEntry", padding=5)
-        self.style.configure("TCombobox", padding=5)
+        self.style.configure('.', font=("Arial", 12))
+        self.tk.call('tk', 'scaling', 1.25)  # 高DPI适配
 
         # 使用 grid 布局主框架
         main_frame = ttkb.Frame(self, padding="15 15 15 15")
@@ -715,6 +714,114 @@ class DataPlotter(TkinterDnD.Tk):
         else:
             messagebox.showerror("Error", "Please load matrix data first")
 
+    def plot_composite_figure(self):
+        """功能：实现组图模式"""
+        # 创建加载界面
+        self.loading_window = tk.Toplevel(self)
+        self.loading_window.title("Select Layout and Load JSON Files")
+        self.loading_window.geometry("400x300")
+        
+        # 布局选项
+        layout_options = [
+            "2x2", "3x1", "1x3", "4x1", "1x4", "3x2", "2x3"
+        ]
+        layout_var = tk.StringVar(value="2x2")  # 默认布局选项
+
+        # 布局选择下拉菜单
+        ttkb.Label(self.loading_window, text="Select Layout:").pack(pady=10)
+        layout_menu = ttkb.Combobox(
+            self.loading_window,
+            textvariable=layout_var,
+            values=layout_options,
+            state="readonly"
+        )
+        layout_menu.pack(pady=10)
+
+        # JSON 文件存储
+        json_files = []
+        buttons_frame = ttkb.Frame(self.loading_window)
+        buttons_frame.pack(fill="both", expand=True)
+
+        def update_buttons():
+            """根据选择的布局更新按钮"""
+            for widget in buttons_frame.winfo_children():
+                widget.destroy()  # 清除之前的按钮
+
+            # 解析布局
+            try:
+                rows, cols = map(int, layout_var.get().split("x"))
+            except ValueError:
+                messagebox.showerror("Error", "Invalid layout format. Please use 'NxM'.")
+                return
+
+            nonlocal json_files
+            json_files = [None] * (rows * cols)  # 初始化 JSON 文件存储
+            buttons = []
+
+            def load_json_for_position(idx):
+                """为特定位置加载 JSON 文件"""
+                file_path = filedialog.askopenfilename(
+                    title=f"Select JSON for Subplot {idx + 1}",
+                    filetypes=[("JSON Files", "*.json")]
+                )
+                if file_path:
+                    json_files[idx] = file_path
+                    buttons[idx].config(text=f"Loaded: {os.path.basename(file_path)}")
+
+            for r in range(rows):
+                for c in range(cols):
+                    idx = r * cols + c
+                    button = ttkb.Button(
+                        buttons_frame,
+                        text=f"Position {idx + 1}",
+                        command=lambda idx=idx: load_json_for_position(idx),
+                        bootstyle="primary"
+                    )
+                    button.grid(row=r, column=c, padx=10, pady=10, sticky="nsew")
+                    buttons.append(button)
+
+        # 初次更新按钮
+        update_buttons()
+
+        # 监听下拉菜单变化，实时更新按钮
+        layout_menu.bind("<<ComboboxSelected>>", lambda e: update_buttons())
+
+        # 完成按钮
+        def finish_and_plot():
+            """完成加载后绘制组图"""
+            self.loading_window.destroy()  # 关闭加载窗口
+
+            # 创建组图
+            rows, cols = map(int, layout_var.get().split("x"))
+            fig, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 4))
+            axes = axes.flatten() if rows * cols > 1 else [axes]  # 统一处理单图和多图情况
+
+            for idx, ax in enumerate(axes):
+                if json_files[idx]:  # 如果用户加载了文件
+                    try:
+                        # 加载 JSON 文件参数
+                        params = self.load_params(json_files[idx])
+                        if params:
+                            self.apply_params(ax, params)  # 应用参数到子图
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Failed to load plot for Subplot {idx + 1}: {e}")
+                else:
+                    ax.set_visible(False)  # 如果未加载文件，隐藏子图
+
+            # 调整布局并显示
+            plt.tight_layout()
+            self.fig = fig  # 保存组图到实例变量
+            plt.show()
+
+        ttkb.Button(
+            self.loading_window,
+            text="Finish and Plot",
+            command=finish_and_plot,
+            bootstyle="success"
+        ).pack(pady=20)
+
+
+
     def save_plot(self):
         if self.data is not None and hasattr(self, 'fig') and self.fig is not None:
             file_path = filedialog.asksaveasfilename(
@@ -738,7 +845,9 @@ class DataPlotter(TkinterDnD.Tk):
         """
         提取交互后绘图的所有参数，包括坐标轴、线条、图例等。
         """
+        # 初始化参数字典
         params = {
+            "plot_type": self.detect_plot_type(ax),  # 自动检测绘图类型
             "xlim": list(ax.get_xlim()),
             "ylim": list(ax.get_ylim()),
             "xlabel": ax.get_xlabel(),
@@ -746,9 +855,20 @@ class DataPlotter(TkinterDnD.Tk):
             "title": ax.get_title(),
             "grid": {
                 "x": ax.xaxis._major_tick_kw.get('gridOn', False),
-                "y": ax.yaxis._major_tick_kw.get('gridOn', False)
+                "y": ax.yaxis._major_tick_kw.get('gridOn', False),
             },
-            "lines": [
+            "tick_params": {
+                "xticks": ax.get_xticks().tolist(),
+                "yticks": ax.get_yticks().tolist(),
+                "xticklabels": [label.get_text() for label in ax.get_xticklabels()],
+                "yticklabels": [label.get_text() for label in ax.get_yticklabels()],
+            },
+            "font_size": plt.rcParams['font.size'],
+        }
+
+        # 根据类型提取特定内容
+        if params["plot_type"] == "lineplot":
+            params["lines"] = [
                 {
                     "xdata": line.get_xdata().tolist(),
                     "ydata": line.get_ydata().tolist(),
@@ -756,28 +876,56 @@ class DataPlotter(TkinterDnD.Tk):
                     "linestyle": line.get_linestyle(),
                     "linewidth": line.get_linewidth(),
                     "marker": line.get_marker(),
-                    "label": getattr(line, '_custom_label', line.get_label()),
-                    "x_column_index": getattr(line, '_x_column_index', None),
-                    "y_column_index": getattr(line, '_y_column_index', None),
+                    "label": line.get_label(),
                 }
                 for line in ax.get_lines()
-            ],
-            "legend": {
-                "visible": ax.get_legend() is not None,
-                "location": ax.get_legend()._loc if ax.get_legend() else None,
-                "fontsize": ax.get_legend().get_texts()[0].get_fontsize() if ax.get_legend() and ax.get_legend().get_texts() else None,
-                "frameon": ax.get_legend().get_frame_on() if ax.get_legend() else None,
-            } if ax.get_legend() else None,
-            "tick_params": {
-                "xticks": ax.get_xticks().tolist(),
-                "yticks": ax.get_yticks().tolist(),
-                "xticklabels": [label.get_text() for label in ax.get_xticklabels()],
-                "yticklabels": [label.get_text() for label in ax.get_yticklabels()]
-            },
-            "font_size": plt.rcParams['font.size'],
-        }
+            ]
+        elif params["plot_type"] == "boxplot":
+            params["box_data"] = self.extract_boxplot_data(ax)  # 自定义提取 boxplot 数据
+
+        # 提取 legend 信息
+        legend = ax.get_legend()
+        if legend is not None:
+            params["legend"] = {
+                "visible": True,
+                "location": legend._loc,
+                "fontsize": legend.get_texts()[0].get_fontsize() if legend.get_texts() else None,
+                "frameon": legend.get_frame_on(),
+                "labels": [text.get_text() for text in legend.get_texts()],
+            }
+        else:
+            params["legend"] = {"visible": False}
+
         return params
 
+
+    def extract_boxplot_data(self, ax):
+        """
+        提取 boxplot 的绘图数据和标签。
+        """
+        box_data = []
+        labels = []
+        for child in ax.get_children():
+            if isinstance(child, matplotlib.text.Text):  # 检查是否是标签
+                labels.append(child.get_text())
+        for line in ax.get_lines():
+            if line.get_linestyle() == '--':  # 检测中位数线条
+                box_data.append(line.get_ydata().tolist())
+        return {"data": box_data, "labels": labels}
+
+    def detect_plot_type(self, ax):
+        """
+        根据绘图的特性检测绘图类型。
+        """
+        # 如果图中有线条，认为是线图
+        if ax.get_lines():
+            return "lineplot"
+        # 如果图中有箱线图的艺术元素，认为是箱线图
+        for child in ax.get_children():
+            if isinstance(child, matplotlib.patches.PathPatch):
+                return "boxplot"
+        # 未知类型
+        return "unknown"
 
     def on_draw(self, event):
         """
@@ -795,13 +943,15 @@ class DataPlotter(TkinterDnD.Tk):
 
 
     def save_params(self, params, data_file_path=None):
-        """保存捕获的参数到 JSON 文件，文件名与数据文件名称匹配"""
+        """Save captured parameters to a JSON file, with the file name matching the data file name."""
         if data_file_path:
-            # 从数据文件路径生成参数文件名
-            base_name = os.path.splitext(os.path.basename(data_file_path))[0]  # 获取数据文件名（无扩展名）
-            filename = f"{base_name}.json"  # 添加 '_params.json' 后缀
+            # Get the base name and directory of the data file
+            base_name = os.path.splitext(os.path.basename(data_file_path))[0]
+            dir_name = os.path.dirname(data_file_path)
+            # Construct the full path for the JSON file in the same directory
+            filename = os.path.join(dir_name, f"{base_name}.json")
         else:
-            filename = "plot_params.json"  # 默认文件名
+            filename = "plot_params.json"  # Default filename if data_file_path is not provided
 
         try:
             with open(filename, "w") as f:
@@ -809,7 +959,6 @@ class DataPlotter(TkinterDnD.Tk):
             print(f"Parameters saved to {filename}")
         except Exception as e:
             print(f"Error saving parameters: {e}")
-
 
     def load_params(self, filename=None):
         """加载保存的绘图参数，支持文件选择"""
@@ -833,27 +982,40 @@ class DataPlotter(TkinterDnD.Tk):
             return None
 
     def apply_params(self, ax, params):
-        """将保存的参数应用到图形"""
-        # 清空线条并重新绘制
+        """
+        将保存的参数应用到图形
+        """
+        # 清空轴内容
         ax.clear()
-        for line_params in params["lines"]:
-            ax.plot(
-                line_params["xdata"],
-                line_params["ydata"],
-                color=line_params["color"],
-                linestyle=line_params["linestyle"],
-                linewidth=line_params["linewidth"],
-                marker=line_params["marker"],
-                label=line_params["label"]
-            )
 
+        # 根据绘图类型恢复内容
+        if params["plot_type"] == "lineplot":
+            for line_params in params["lines"]:
+                ax.plot(
+                    line_params["xdata"],
+                    line_params["ydata"],
+                    color=line_params["color"],
+                    linestyle=line_params["linestyle"],
+                    linewidth=line_params["linewidth"],
+                    marker=line_params["marker"],
+                    label=line_params["label"]
+                )
+        elif params["plot_type"] == "boxplot":
+            if "box_data" in params:
+                data = params["box_data"]["data"]
+                tick_labels = params["box_data"]["labels"]  # 使用新的参数名称
+                ax.boxplot(data, tick_labels=tick_labels)  # 修改为 tick_labels
+
+        # 恢复 legend 信息
         if params.get("legend", {}).get("visible", False):
-            legend = ax.legend(
-                loc=params["legend"].get("location", 'best'),
-                fontsize=params["legend"].get("fontsize", params.get('font_size', 12)),
-                frameon=params["legend"].get("frameon", True)
+            legend_params = params["legend"]
+            ax.legend(
+                loc=legend_params.get("location", "best"),
+                fontsize=legend_params.get("fontsize", params.get("font_size", 12)),
+                frameon=legend_params.get("frameon", True)
             )
 
+        # 恢复坐标轴标签和标题
         ax.set_xlabel(params["xlabel"])
         ax.set_ylabel(params["ylabel"])
         ax.set_title(params["title"])
@@ -867,39 +1029,65 @@ class DataPlotter(TkinterDnD.Tk):
         ax.set_yticks(params["tick_params"]["yticks"])
         ax.set_xticklabels(params["tick_params"]["xticklabels"])
         ax.set_yticklabels(params["tick_params"]["yticklabels"])
-
-        # 应用 xlim 和 ylim
+        ax.minorticks_on()
+        # 应用坐标轴范围
         if "xlim" in params:
             ax.set_xlim(params["xlim"])
         if "ylim" in params:
             ax.set_ylim(params["ylim"])
 
 
+    def plot_line(self, ax, params):
+        """根据参数绘制线图"""
+        for line_params in params.get("lines", []):
+            ax.plot(
+                line_params["xdata"],
+                line_params["ydata"],
+                color=line_params["color"],
+                linestyle=line_params["linestyle"],
+                linewidth=line_params["linewidth"],
+                marker=line_params["marker"],
+                label=line_params["label"]
+            )
+
+        # 添加图例（如果存在）
+        if params.get("legend", {}).get("visible", False):
+            ax.legend(
+                loc=params["legend"].get("location", 'best'),
+                fontsize=params["legend"].get("fontsize", params.get('font_size', 12)),
+                frameon=params["legend"].get("frameon", True)
+            )
+
+    def plot_box(self, ax, params):
+        """根据参数绘制箱线图"""
+        box_data = params["box_data"]["data"]
+        labels = params["box_data"]["labels"]
+        ax.boxplot(box_data, labels=labels)
+
     def json_plot(self):
         """选择并加载 JSON 文件以恢复保存的绘图"""
-        # 打开文件选择对话框
         file_path = filedialog.askopenfilename(
             title="Select JSON File",
             filetypes=[("JSON Files", "*.json")]
         )
-        
-        if file_path:  # 确保用户选择了文件
+        if file_path:
             try:
                 # 加载 JSON 文件中的参数
                 params = self.load_params(file_path)
                 self.fig, ax = plt.subplots()
+
                 # 应用参数到绘图
                 self.apply_params(ax, params)
+
                 plt.tight_layout()
                 self.current_file_path = file_path  # 保存当前文件路径
-                # 注册事件监听
                 self.fig.canvas.mpl_connect('draw_event', self.on_draw)
                 plt.show()
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to restore plot from {file_path}: {e}")
         else:
-            # 用户取消选择时提示
             messagebox.showinfo("Info", "No file selected.")
+
 
     def export_plot_code(self):
         """Generate and export complete Python plotting code that imports data from a JSON file."""
@@ -921,8 +1109,9 @@ class DataPlotter(TkinterDnD.Tk):
             if not params.get("lines") or len(params["lines"]) == 0:
                 raise ValueError("No valid plotting parameters in the JSON file.")
 
-            # Get the base name of the JSON file to use in the code
+            # Get the base name and directory of the JSON file
             json_file_name = os.path.basename(json_file_path)
+            json_dir = os.path.dirname(json_file_path)
             code_file_name = os.path.splitext(json_file_name)[0] + ".py"
 
             # Generate code that imports data from the JSON file
@@ -1001,11 +1190,11 @@ class DataPlotter(TkinterDnD.Tk):
                 title="Save Python Code",
                 defaultextension=".py",
                 initialfile=code_file_name,
+                initialdir=json_dir,
                 filetypes=[("Python Files", "*.py")]
             )
             if save_path:
-                # Copy the JSON file to the same directory as the code file
-                import shutil
+                # Copy the JSON file to the same directory as the code file if necessary
                 json_destination = os.path.join(os.path.dirname(save_path), json_file_name)
                 if not os.path.exists(json_destination):
                     shutil.copy(json_file_path, json_destination)
@@ -1017,6 +1206,7 @@ class DataPlotter(TkinterDnD.Tk):
                 messagebox.showinfo("Export Cancelled", "No file selected.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate plotting code from JSON: {e}")
+
 
     def manual(self):
         """Display the user manual"""

@@ -21,7 +21,7 @@ Detailed Instructions:
 2. Set the desired format.
 3. Plot Data (You can freely browse and personalize pictures).
 4. Save Plot (You can click the orange panel in the main interface to save figures with DPI=1200)
-5. You can save the data and settings for each figure to redraw it anytime (by clicking [Save Raw Data]).
+5. The picture parameters will be automatically stored as .json file for your convenience of redrawing it.
 
 ![image](https://github.com/user-attachments/assets/a56986f0-a7c5-4903-8b30-58c5cc47bff5)
 
