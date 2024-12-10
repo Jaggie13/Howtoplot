@@ -5,7 +5,7 @@ Usage:<br>
 For Howtoplot.py
 1. Install Python. (https://www.python.org/downloads/)
 2. Run Howtoplot.py in Python.
-3. Install the lacked modules. (pip install tkinterdnd2 ttkbootstrap matplotlib pandas tksheet jsonpickle)
+3. Install the lacked modules. (pip install tkinterdnd2 ttkbootstrap matplotlib pandas tksheet jsonpickle PyQt5)
 4. You may need the LATEX for the Computer Modern font, or you can set another font to avoid LATEX environment.
 5. Run Howtoplot.py in Python.
 
